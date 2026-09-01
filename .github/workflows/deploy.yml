@@ -1,6 +1,11 @@
 # Builds the sheet and publishes it to GitHub Pages on every push to the
-# default branch. The first successful run turns Pages on for the repository
-# (configure-pages, enablement: true) — no settings visit needed.
+# default branch.
+#
+# Before the first run can succeed, set Settings -> Pages -> Build and
+# deployment -> Source to "GitHub Actions". GITHUB_TOKEN is not permitted to
+# create a Pages site, so the configure-pages step below fails with "Resource
+# not accessible by integration" until that source is set by hand; enablement
+# is left on because it does work for a run driven by a personal access token.
 name: Deploy to GitHub Pages
 
 on:

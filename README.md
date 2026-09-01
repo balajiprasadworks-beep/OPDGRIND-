@@ -25,10 +25,17 @@ server-side runtime.
 ## Deployment
 
 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) builds and
-publishes to GitHub Pages on every push to the default branch, and enables Pages
-on the first run:
+publishes to GitHub Pages on every push to the default branch:
 
 > https://balajiprasadworks-beep.github.io/OPDGRIND-/
+
+**One-time step before the first deploy succeeds.** In
+**Settings → Pages → Build and deployment**, set **Source** to
+**GitHub Actions**. A workflow cannot do this for you: `GITHUB_TOKEN` is not
+allowed to create a Pages site, so `configure-pages` fails with *Resource not
+accessible by integration* until the source is set. Re-run the workflow
+afterwards (**Actions → Deploy to GitHub Pages → Run workflow**) and every push
+deploys from then on.
 
 To change the doctor's name, the target, or the Supabase project without editing
 code, set repository variables under **Settings → Secrets and variables →
