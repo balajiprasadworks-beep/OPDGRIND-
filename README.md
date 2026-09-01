@@ -43,6 +43,33 @@ Actions → Variables** using the names in the table above. They are variables
 rather than secrets on purpose: Vite inlines them into the published JavaScript,
 where any visitor can read them, so a secret would only be hiding them from you.
 
+### Cloudflare Pages
+
+[`.github/workflows/cloudflare.yml`](.github/workflows/cloudflare.yml) does the
+same for Cloudflare Pages, and creates the Pages project itself on the first
+run, so nothing is configured in the Cloudflare dashboard:
+
+> https://opdgrind.pages.dev
+
+It needs two repository **secrets** (Settings → Secrets and variables → Actions
+→ New repository secret):
+
+| Secret | Where it comes from |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | dash.cloudflare.com → My Profile → API Tokens → Create Token → **Edit Cloudflare Workers** template (or a custom token with Account → Cloudflare Pages → Edit) |
+| `CLOUDFLARE_ACCOUNT_ID` | the 32-character hex id in the dashboard URL, `dash.cloudflare.com/<account id>/…` |
+
+These two really are secrets — the API token can deploy to your account — which
+is why they are secrets and the `VITE_*` build settings above are variables.
+
+**Putting a login in front of it.** Cloudflare Zero Trust → Access →
+Applications → Add a self-hosted application, hostname `opdgrind.pages.dev`,
+with a policy allowing your own email and one-time PIN as the method. Free for
+up to 50 users. Note what that does and does not buy: it stops strangers loading
+the page, but anyone who has already seen the Supabase key can still call the
+REST API directly, because the policies in `schema.sql` accept the anonymous
+key. Access guards the page; only RLS guards the data.
+
 **This repository is public, so the Pages site is too** — anyone with the URL
 gets the sheet, the key inside it, and therefore every patient row. See the
 note under Cloud setup, and prefer a host that can put a login in front of the

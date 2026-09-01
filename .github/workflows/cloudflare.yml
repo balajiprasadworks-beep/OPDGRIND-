@@ -1,0 +1,92 @@
+# Builds the sheet and deploys it to Cloudflare Pages on every push to the
+# default branch, creating the Pages project on the first run.
+#
+# Setup is two repository secrets — Settings -> Secrets and variables ->
+# Actions -> New repository secret:
+#
+#   CLOUDFLARE_API_TOKEN   dash.cloudflare.com -> My Profile -> API Tokens ->
+#                          Create Token -> "Edit Cloudflare Workers" template,
+#                          or a custom token with Account -> Cloudflare Pages ->
+#                          Edit. Nothing else is needed.
+#   CLOUDFLARE_ACCOUNT_ID  the 32-character hex id in the dashboard URL
+#                          (dash.cloudflare.com/<account id>/...), also shown
+#                          on any account's Workers & Pages overview.
+#
+# Nothing is configured in the Cloudflare dashboard: wrangler creates the
+# project, and the build settings live in this file.
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches:
+      - claude/supabase-artifact-integration-tw9ryi
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-pages
+  cancel-in-progress: false
+
+env:
+  PROJECT_NAME: opdgrind
+  PRODUCTION_BRANCH: production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build
+        # Repository variables override src/config.js; unset ones arrive empty
+        # and fall back. Not secrets — Vite inlines them into the published
+        # JavaScript, where any visitor can read them.
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_KEY: ${{ vars.VITE_SUPABASE_KEY }}
+          VITE_DOCTOR_NAME: ${{ vars.VITE_DOCTOR_NAME }}
+          VITE_UNIT_LINE: ${{ vars.VITE_UNIT_LINE }}
+          VITE_TARGET_MINUTES: ${{ vars.VITE_TARGET_MINUTES }}
+          VITE_SHOW_CHIP_RAIL: ${{ vars.VITE_SHOW_CHIP_RAIL }}
+        run: npm run build
+
+      - name: Fail early if the Cloudflare secrets are missing
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ] || [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
+            echo "::error::Add the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repository secrets (see the comment at the top of this workflow)."
+            exit 1
+          fi
+
+      - name: Create the Pages project if it is not there yet
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        # Re-running this on an existing project is an error, not a problem.
+        run: |
+          npx --yes wrangler@4 pages project create "$PROJECT_NAME" \
+            --production-branch "$PRODUCTION_BRANCH" \
+            || echo "Project already exists — continuing."
+
+      - name: Deploy
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx --yes wrangler@4 pages deploy dist \
+            --project-name "$PROJECT_NAME" \
+            --branch "$PRODUCTION_BRANCH" \
+            --commit-dirty=true
+
+      - name: Where it landed
+        run: echo "### Live at https://$PROJECT_NAME.pages.dev" >> "$GITHUB_STEP_SUMMARY"
