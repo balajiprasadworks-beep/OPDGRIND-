@@ -51,16 +51,16 @@ run, so nothing is configured in the Cloudflare dashboard:
 
 > https://opdgrind.pages.dev
 
-It needs two repository **secrets** (Settings → Secrets and variables → Actions
-→ New repository secret):
+It needs one repository **secret** (Settings → Secrets and variables → Actions →
+New repository secret):
 
 | Secret | Where it comes from |
 | --- | --- |
 | `CLOUDFLARE_API_TOKEN` | dash.cloudflare.com → My Profile → API Tokens → Create Token → **Edit Cloudflare Workers** template (or a custom token with Account → Cloudflare Pages → Edit) |
-| `CLOUDFLARE_ACCOUNT_ID` | the 32-character hex id in the dashboard URL, `dash.cloudflare.com/<account id>/…` |
+| `CLOUDFLARE_ACCOUNT_ID` | Only needed if that token can see more than one Cloudflare account — wrangler resolves a single account by itself. It is the 32-character hex id in the dashboard URL, `dash.cloudflare.com/<account id>/…` |
 
-These two really are secrets — the API token can deploy to your account — which
-is why they are secrets and the `VITE_*` build settings above are variables.
+The token really is a secret — it can deploy to your account — which is why it is
+a secret while the `VITE_*` build settings above are variables.
 
 **Putting a login in front of it.** Cloudflare Zero Trust → Access →
 Applications → Add a self-hosted application, hostname `opdgrind.pages.dev`,
