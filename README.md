@@ -19,8 +19,27 @@ npm run preview    # serve the build locally
 ```
 
 The build is plain static files with relative asset URLs, so `dist/` drops
-straight onto GitHub Pages, Netlify, Vercel, or a folder on a hospital web
-server, with no server-side runtime.
+straight onto any static host, or a folder on a hospital web server, with no
+server-side runtime.
+
+## Deployment
+
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) builds and
+publishes to GitHub Pages on every push to the default branch, and enables Pages
+on the first run:
+
+> https://balajiprasadworks-beep.github.io/OPDGRIND-/
+
+To change the doctor's name, the target, or the Supabase project without editing
+code, set repository variables under **Settings → Secrets and variables →
+Actions → Variables** using the names in the table above. They are variables
+rather than secrets on purpose: Vite inlines them into the published JavaScript,
+where any visitor can read them, so a secret would only be hiding them from you.
+
+**This repository is public, so the Pages site is too** — anyone with the URL
+gets the sheet, the key inside it, and therefore every patient row. See the
+note under Cloud setup, and prefer a host that can put a login in front of the
+page if the log holds real names.
 
 ## Configuration
 

@@ -17,7 +17,10 @@ const DEFAULTS = {
   supabaseKey: 'sb_publishable_A3ApdkhDThVR3oiMfQ-JjA_jRAQobhD'
 }
 
+// CI hands through unset variables as empty strings, and Number('') is 0 —
+// which would paint every patient over target. Treat blank as absent.
 const num = (v, fallback) => {
+  if (v == null || v === '') return fallback
   const n = Number(v)
   return Number.isFinite(n) ? n : fallback
 }
