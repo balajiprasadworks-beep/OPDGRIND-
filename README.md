@@ -1,8 +1,8 @@
 # OPDGrind
 
 A cardiology OPD performance tracker: one keyboard-driven sheet per clinic day
-that records when each patient walked in and out, how hard the case was, what
-was asked for, what they already had done, and where the time actually went —
+that records when each patient walked in and out, what was asked for, what they
+already had done, and where the time actually went —
 then prints on A4 landscape as the paper log and syncs to Supabase so previous
 days survive the browser.
 
@@ -138,10 +138,9 @@ their patient list, so it should be a real one.
 
 Time In stamps itself the moment you start typing a name, **Out now** stamps the
 exit, and the Min column colours red past the target. `Enter` moves to the next
-cell, `↓`/`↑` move between patients, `N`/`R` set New/Review on the Case cell, and
-`1`/`2`/`3` set MID/HIGH/V.HIGH on the Complexity cell — clicking a pill that is
-already on clears it. Focusing *Investigations asked* or *Done before walk-in*
-raises the chip rail — ECG, ECHO, TROP and the rest go in with one tap.
+cell, `↓`/`↑` move between patients, and `N`/`R` set New/Review on the Case cell.
+Focusing *Investigations asked* or *Done before walk-in* raises the chip rail —
+ECG, ECHO, TROP and the rest go in with one tap.
 
 Time away from the desk is kept on two separate clocks, because a planned break
 and a ward call are not the same number: **Start break** for the planned kind,
@@ -155,9 +154,8 @@ out* a **Caio!** — about a second and a half, in its own lane so it never cove
 the sheet, and never able to swallow a click.
 
 **Print paper sheet** lays the day out A4 landscape and hides all the
-screen-only controls (and the "if delayed, why" column when no row uses it);
-complexity prints as plain text rather than as pills. The reports print A4
-portrait, one page each.
+screen-only controls (and the "if delayed, why" column when no row uses it). The
+reports print A4 portrait, one page each.
 
 ## Clinician profiles
 
@@ -219,17 +217,16 @@ break time and time lost to interruptions. After Saturday: total patients,
 average load per day, the day with most patients, and the average minutes per
 patient. That last figure is *weighted* — total consulting minutes over total
 patients — so a four-patient morning cannot drag a forty-patient day around the
-way a mean of the daily means would. Below the rule: where the time went, and
-the week's case mix as one bar. A Sunday clinic, if one ever happens, appears as
-a muted row after Saturday rather than being dropped.
+way a mean of the daily means would. Below the rule: where the time went — OPD
+hours, break time and interruptions. A Sunday clinic, if one ever happens,
+appears as a muted row after Saturday rather than being dropped.
 
 **Monthly report** — the calendar month, one line per week, with a ruled month
 total beneath, then the same four figures for the month. It adds the two
 pictures a month can draw that a week cannot: the load strip, a calendar grid
 with each day inked by how busy it was, and the weekday pattern — average
 patients by weekday, which is the one that says which day of the week is
-actually costing you. It closes with the month's case mix and the mean minutes
-per patient at each complexity.
+actually costing you.
 
 Both reports read the local store, so they work with no network, and both step
 backwards and forwards through weeks and months.
