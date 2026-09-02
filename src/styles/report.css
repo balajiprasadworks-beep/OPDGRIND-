@@ -1,0 +1,79 @@
+/* The weekly and monthly reports. Same ink, same rules and same typeface as
+   the daily sheet — but laid out to be read and filed, not filled in. */
+
+.report-shell { max-width: 1040px; }
+
+.report-table { font-size: 14.5px; }
+.report-table th { white-space: nowrap; padding-bottom: 8px; }
+.report-table td { padding: 10px var(--space-2); vertical-align: middle; }
+.report-table tbody tr:hover { background: transparent; }
+
+/* A day with no clinic is still a line on the week — quiet, not missing. */
+.report-table tbody tr.is-quiet td { color: var(--color-neutral-500); }
+
+/* The total line closes the table the way the day-close rule closes the sheet. */
+.report-table tfoot td {
+  border-top: 1px solid var(--color-text);
+  border-bottom: none;
+  padding-top: 12px;
+  font-size: 15.5px;
+}
+
+/* ── the summary figures ─────────────────────────────────────────────────
+   Four numbers in a row on screen, and still four in a row on paper — which
+   is why the sizes live here rather than inline: print has to shrink them to
+   keep the whole report on a single sheet. */
+.report-figures {
+  margin-top: var(--space-6);
+  display: flex; gap: var(--space-8); flex-wrap: wrap;
+}
+.report-figure { min-width: 112px; }
+.report-figure.is-wide { min-width: 150px; }
+.report-figure-value {
+  font: 600 38px/1 var(--font-heading);
+  color: var(--color-accent-700); letter-spacing: -.01em;
+}
+.report-figure.is-wide .report-figure-value { font-size: 30px; }
+.report-figure-label {
+  font: 400 12.5px/1.25 var(--font-body); color: var(--color-neutral-700);
+  letter-spacing: .05em; text-transform: uppercase; margin-top: 6px;
+}
+.report-figure-note {
+  font: 400 13px/1.35 var(--font-body); color: var(--color-neutral-600); margin-top: 3px;
+}
+
+.report-rule { margin-top: var(--space-6); height: 1px; background: var(--color-divider); }
+.report-strip {
+  margin-top: var(--space-4);
+  display: flex; gap: var(--space-8); flex-wrap: wrap; align-items: flex-start;
+}
+
+@media print {
+  /* Portrait comes from the runtime @page rule in App.jsx. A named page would
+     read better here, but Chromium breaks to a new sheet on entering one, and
+     a report that opens with a blank page is not a report worth printing. */
+  .report-shell { max-width: none; }
+
+  /* The bars and the load strip carry the meaning here, so they have to survive
+     the printer's default of dropping backgrounds. */
+  .report-shell * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* A week and a month are each meant to be one sheet of paper you can hand
+     over or file. Everything below is the squeeze that keeps them to one. */
+  .report-table { font-size: 9.5pt; }
+  .report-table th { font-size: 8.5px; letter-spacing: .04em; padding: 0 6px 5px; }
+  .report-table td { padding: 4px 6px; }
+  .report-table tfoot td { padding-top: 7px; font-size: 10.5pt; }
+  .report-table tr { break-inside: avoid; }
+
+  .report-figures { margin-top: var(--space-4); gap: var(--space-4); }
+  .report-figure, .report-figure.is-wide { min-width: 0; flex: 1; }
+  .report-figure-value { font-size: 25px; }
+  .report-figure.is-wide .report-figure-value { font-size: 21px; }
+  .report-figure-label { font-size: 10px; margin-top: 4px; }
+  .report-figure-note { font-size: 11px; }
+
+  .report-rule { margin-top: var(--space-4); }
+  .report-strip { margin-top: var(--space-3); gap: var(--space-4); break-inside: avoid; }
+  .report-panels { break-inside: avoid; }
+}
