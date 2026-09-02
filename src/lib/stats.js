@@ -4,22 +4,8 @@
 // reports can never quietly disagree with each other — or with the day close on
 // the sheet, which counts a patient with the same test (lib/store.js#isPatient).
 
-import { COMPLEXITY, isPatient } from './store.js'
+import { isPatient } from './store.js'
 import { dur, span, toMin, mondayOf, weekKeys, monthWeeks, dayShort, dateShort, rangeLabel, parseKey } from './time.js'
-
-const CODES = COMPLEXITY.map((c) => c.code)
-
-const emptyMix = () => {
-  const mix = {}
-  CODES.forEach((c) => { mix[c] = 0 })
-  return mix
-}
-
-const emptyMixMins = () => {
-  const mix = {}
-  CODES.forEach((c) => { mix[c] = { n: 0, mins: 0 } })
-  return mix
-}
 
 // Total minutes across a list of { out, in } spans, ignoring any still running.
 export function spanMinutes(list) {
@@ -38,8 +24,6 @@ export function dayStats(day, key) {
 
   let consultMins = 0
   let timed = 0
-  const mix = emptyMix()
-  const mixMins = emptyMixMins()
   let newCount = 0
   let reviewCount = 0
 
@@ -51,13 +35,6 @@ export function dayStats(day, key) {
     }
     if (r.type === 'New') newCount += 1
     if (r.type === 'Review') reviewCount += 1
-    if (mix[r.complexity] != null) {
-      mix[r.complexity] += 1
-      if (d != null) {
-        mixMins[r.complexity].n += 1
-        mixMins[r.complexity].mins += d
-      }
-    }
   })
 
   // OPD hours are the clinician's own walk in → walk out. Before those are
@@ -87,8 +64,6 @@ export function dayStats(day, key) {
     breakMins,
     interruptMins,
     netMins: opdMins == null ? null : Math.max(0, opdMins - breakMins - interruptMins),
-    complexity: mix,
-    complexityMins: mixMins,
     newCount,
     reviewCount
   }
@@ -102,8 +77,7 @@ export function dayStats(day, key) {
 function rollUp(stats) {
   const total = {
     patients: 0, daysWorked: 0, consultMins: 0, timed: 0,
-    opdMins: 0, breakMins: 0, interruptMins: 0,
-    complexity: emptyMix(), complexityMins: emptyMixMins()
+    opdMins: 0, breakMins: 0, interruptMins: 0
   }
 
   stats.forEach((s) => {
@@ -114,11 +88,6 @@ function rollUp(stats) {
     total.opdMins += s.opdMins || 0
     total.breakMins += s.breakMins
     total.interruptMins += s.interruptMins
-    CODES.forEach((c) => {
-      total.complexity[c] += s.complexity[c]
-      total.complexityMins[c].n += s.complexityMins[c].n
-      total.complexityMins[c].mins += s.complexityMins[c].mins
-    })
   })
 
   total.meanMin = total.timed ? total.consultMins / total.timed : null

@@ -1,11 +1,9 @@
 import React, { useState } from 'react'
 
 import { st } from '../lib/css.js'
-import { COMPLEXITY } from '../lib/store.js'
 import { monthStats } from '../lib/stats.js'
 import { addMonths, dateShort, dayShort, hm, hours, istDate, monthLong, monthOf, one } from '../lib/time.js'
 import ReportShell, { Figure, KICKER } from './ReportShell.jsx'
-import { ComplexityBar, ComplexityMeans } from './WeekReport.jsx'
 
 // The month, built out of the weeks the doctor already reads one at a time.
 // One row per week, then the two pictures a month can draw that a week cannot:
@@ -78,7 +76,6 @@ export default function MonthReport({ store, user, onBack }) {
 
   const m = monthStats(store, ym.year, ym.month)
   const t = m.totals
-  const graded = COMPLEXITY.reduce((sum, c) => sum + t.complexity[c.code], 0)
   const now = monthOf(istDate())
   const atCurrent = ym.year === now.year && ym.month === now.month
 
@@ -182,21 +179,13 @@ export default function MonthReport({ store, user, onBack }) {
       <div className="report-rule"></div>
 
       <div className="report-strip">
-        <div style={st('min-width:240px')}>
+        <div style={st('flex:1')}>
           <div style={st(KICKER)}>Where the time went</div>
-          <div style={st('margin-top:var(--space-2);font:400 16px/1.7 var(--font-body);font-variant-numeric:tabular-nums')}>
+          <div style={st('margin-top:var(--space-2);display:flex;gap:var(--space-8);flex-wrap:wrap;font:400 16px/1.7 var(--font-body);font-variant-numeric:tabular-nums')}>
             <div><span style={st('color:var(--color-neutral-600)')}>Total OPD hours </span><strong>{hours(t.opdMins)}</strong></div>
             <div><span style={st('color:var(--color-neutral-600)')}>Total break time </span><strong>{hm(t.breakMins)}</strong></div>
             <div><span style={st('color:var(--color-neutral-600)')}>Total interruptions </span><strong>{hm(t.interruptMins)}</strong></div>
           </div>
-        </div>
-
-        <div style={st('flex:1;min-width:280px')}>
-          <div style={st(KICKER)}>Case mix</div>
-          <div style={st('margin-top:var(--space-2)')}>
-            <ComplexityBar mix={t.complexity} total={graded} />
-          </div>
-          <ComplexityMeans mins={t.complexityMins} withCounts />
         </div>
       </div>
     </ReportShell>

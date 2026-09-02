@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { config } from '../config.js'
 import { st } from '../lib/css.js'
 import { dur, istDate, istTime, toMin } from '../lib/time.js'
-import { COMPLEXITY, FIELDS, blankRow, complexityLabel } from '../lib/store.js'
+import { FIELDS, blankRow } from '../lib/store.js'
 import { SETUP_SQL } from '../lib/supabase.js'
 import { displayName } from '../lib/auth.js'
 import Greeting, { GREETING_MS } from './Greeting.jsx'
@@ -107,7 +107,6 @@ export default function DaySheet({
         : 'color:var(--color-neutral-800)',
       newStyle: pill(r.type === 'New', 'var(--color-accent-700)'),
       revStyle: pill(r.type === 'Review', 'var(--color-accent-700)'),
-      complexityLabel: complexityLabel(r.complexity),
       hasOut: !!r.outT,
       needsOut: !r.outT
     }
@@ -188,13 +187,6 @@ export default function DaySheet({
     patch(i, { type: r && r.type === v ? '' : v })
   }
 
-  const setComplexity = (e) => {
-    const i = +e.currentTarget.dataset.row
-    const v = e.currentTarget.dataset.val
-    const r = rows[i]
-    patch(i, { complexity: r && r.complexity === v ? '' : v })
-  }
-
   const removeRow = (e) => {
     const i = +e.currentTarget.dataset.row
     const next = rows.slice()
@@ -244,9 +236,8 @@ export default function DaySheet({
 
   const pickImport = () => fileRef.current && fileRef.current.click()
 
-  // Enter walks the row, arrows walk the column, N/R set the case type, 1/2/3
-  // set the complexity — the whole sheet is meant to be filled without reaching
-  // for the mouse.
+  // Enter walks the row, arrows walk the column, N/R set the case type — the
+  // whole sheet is meant to be filled without reaching for the mouse.
   const onKey = (e) => {
     const ds = e.target.dataset || {}
     if (ds.row == null || !ds.field) return
@@ -259,14 +250,6 @@ export default function DaySheet({
       e.preventDefault()
       patch(i, { type: (e.key === 'n' || e.key === 'N') ? 'New' : 'Review' })
       return
-    }
-    if (field === 'complexity') {
-      const hit = COMPLEXITY.filter((c) => c.key === e.key)[0]
-      if (hit) {
-        e.preventDefault()
-        patch(i, { complexity: hit.code })
-        return
-      }
     }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -467,14 +450,13 @@ export default function DaySheet({
       <div style={st('height:1px;background:var(--color-text);margin-top:3px')}></div>
 
       <div style={st('overflow-x:auto;margin-top:var(--space-4)')} onKeyDown={onKey}>
-        <table className={('table log-table ' + delayClass).trim()} style={st('min-width:1540px;font-size:15px')}>
+        <table className={('table log-table ' + delayClass).trim()} style={st('min-width:1440px;font-size:15px')}>
           <thead>
             <tr>
               <th style={st('text-align:right')}>#</th>
               <th>Patient name</th>
               <th>OPD no.</th>
               <th>Case</th>
-              <th>Complexity</th>
               <th>In</th>
               <th>Out</th>
               <th style={st('text-align:right')}>Min</th>
@@ -500,22 +482,6 @@ export default function DaySheet({
                     <button type="button" data-row={row.i} data-val="New" onClick={setType} style={st(row.newStyle)}>New</button>
                     <button type="button" data-row={row.i} data-val="Review" onClick={setType} style={st(row.revStyle)}>Rev</button>
                   </div>
-                </td>
-                <td>
-                  <div className="type-cell screen-only" data-row={row.i} data-field="complexity" tabIndex={0} style={st('display:flex;gap:4px;padding:2px 0;border-radius:var(--radius-md)')}>
-                    {COMPLEXITY.map((c) => (
-                      <button
-                        key={c.code}
-                        type="button"
-                        data-row={row.i}
-                        data-val={c.code}
-                        onClick={setComplexity}
-                        title={c.label + ' — press ' + c.key}
-                        style={st(pill(row.complexity === c.code, c.color))}
-                      >{c.label}</button>
-                    ))}
-                  </div>
-                  <span className="print-only">{row.complexityLabel}</span>
                 </td>
                 <td>
                   <input data-row={row.i} data-field="inT" value={row.inT} onFocus={onFocus} onChange={edit} placeholder="--:--" style={st('font-variant-numeric:tabular-nums')} />
@@ -568,7 +534,7 @@ export default function DaySheet({
       <div className="screen-only" style={st('margin-top:var(--space-3);display:flex;align-items:baseline;gap:var(--space-4);flex-wrap:wrap')}>
         <button type="button" className="btn btn-ghost" onClick={appendRow}>+ Add patient</button>
         <div style={st('font:italic 400 14px/1.5 var(--font-body);color:var(--color-neutral-600)')}>
-          Enter moves to the next cell · ↓ next patient · ↑ previous · on the Case cell press N or R · on Complexity press 1, 2 or 3 · Time In stamps itself when you start the name
+          Enter moves to the next cell · ↓ next patient · ↑ previous · on the Case cell press N or R · Time In stamps itself when you start the name
         </div>
       </div>
 

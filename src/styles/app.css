@@ -8,10 +8,6 @@ a:hover { color: var(--color-accent-600); text-decoration: underline; }
 .log-table td { vertical-align: top; }
 :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 
-/* The screen/paper pair: .screen-only is chrome the paper sheet does not want,
-   .print-only is the plain text that stands in for an interactive control. */
-.print-only { display: none; }
-
 /* Interaction states the design canvas carried as style-hover / style-focus
    attributes; as a real page they belong in the stylesheet. */
 .type-cell:focus { box-shadow: 0 0 0 2px var(--color-accent); }
@@ -95,7 +91,6 @@ a:hover { color: var(--color-accent-600); text-decoration: underline; }
      portrait for a report. It cannot live here: @page is global, and CSS has
      no way to vary it per screen. */
   .screen-only { display: none !important; }
-  .print-only { display: inline; }
   /* The shell is a full-height screen surface; on paper that min-height is a
      blank page's worth of nothing, and any sub-pixel overflow past it starts a
      second sheet. */

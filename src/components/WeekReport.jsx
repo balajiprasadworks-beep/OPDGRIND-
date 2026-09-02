@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 
 import { st } from '../lib/css.js'
-import { COMPLEXITY } from '../lib/store.js'
 import { weekStats } from '../lib/stats.js'
 import { addDays, dayLong, hm, hours, istDate, mondayOf, one } from '../lib/time.js'
 import ReportShell, { Figure, KICKER } from './ReportShell.jsx'
@@ -27,63 +26,11 @@ function LoadCell({ value, max }) {
   )
 }
 
-// The week's case mix as one bar. Complexity is only worth logging if it can be
-// read back this way — three counts in a row tell you far less than their
-// proportions do.
-export function ComplexityBar({ mix, total }) {
-  if (!total) {
-    return <span style={st('font:italic 400 14px/1.4 var(--font-body);color:var(--color-neutral-600)')}>no cases graded yet</span>
-  }
-  return (
-    <div>
-      <div style={st('display:flex;height:14px;width:100%;max-width:420px;border-radius:1px;overflow:hidden;background:var(--color-neutral-200)')}>
-        {COMPLEXITY.map((c) => (
-          mix[c.code] > 0 && (
-            <span
-              key={c.code}
-              title={c.label + ' — ' + mix[c.code]}
-              style={st('display:block;height:14px;background:' + c.color + ';width:' + ((mix[c.code] / total) * 100) + '%')}
-            ></span>
-          )
-        ))}
-      </div>
-      <div style={st('display:flex;gap:var(--space-3);flex-wrap:wrap;margin-top:8px;font:400 14px/1.3 var(--font-body)')}>
-        {COMPLEXITY.map((c) => (
-          <span key={c.code} style={st('display:inline-flex;align-items:center;gap:6px')}>
-            <span style={st('width:10px;height:10px;border-radius:1px;background:' + c.color + ';flex:none')}></span>
-            {c.label} <strong style={st('font-variant-numeric:tabular-nums')}>{mix[c.code]}</strong>
-          </span>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// "MID averaged 9.0 min · HIGH averaged 14.0 min" — the line that turns three
-// counts into the reason a heavy week felt heavy. Grades nobody used are left
-// out, and the separator only ever sits between two of them.
-export function ComplexityMeans({ mins, withCounts }) {
-  const graded = COMPLEXITY.filter((c) => mins[c.code].n > 0)
-  if (!graded.length) return null
-  return (
-    <div style={st('margin-top:var(--space-3);font:400 14.5px/1.6 var(--font-body);color:var(--color-neutral-700)')}>
-      {graded.map((c, i) => (
-        <span key={c.code}>
-          {c.label} averaged <strong>{one(mins[c.code].mins / mins[c.code].n)} min</strong>
-          {withCounts ? ' over ' + mins[c.code].n : ''}
-          {i < graded.length - 1 ? '  ·  ' : ''}
-        </span>
-      ))}
-    </div>
-  )
-}
-
 export default function WeekReport({ store, user, onBack }) {
   const [anchor, setAnchor] = useState(istDate)
 
   const week = weekStats(store, anchor)
   const t = week.totals
-  const graded = COMPLEXITY.reduce((sum, c) => sum + t.complexity[c.code], 0)
   const atCurrent = mondayOf(anchor) === mondayOf(istDate())
 
   return (
@@ -167,21 +114,13 @@ export default function WeekReport({ store, user, onBack }) {
       <div className="report-rule"></div>
 
       <div className="report-strip">
-        <div style={st('min-width:240px')}>
+        <div style={st('flex:1')}>
           <div style={st(KICKER)}>Where the time went</div>
-          <div style={st('margin-top:var(--space-2);font:400 16px/1.7 var(--font-body);font-variant-numeric:tabular-nums')}>
+          <div style={st('margin-top:var(--space-2);display:flex;gap:var(--space-8);flex-wrap:wrap;font:400 16px/1.7 var(--font-body);font-variant-numeric:tabular-nums')}>
             <div><span style={st('color:var(--color-neutral-600)')}>Total OPD hours </span><strong>{hours(t.opdMins)}</strong></div>
             <div><span style={st('color:var(--color-neutral-600)')}>Total break time </span><strong>{hm(t.breakMins)}</strong></div>
             <div><span style={st('color:var(--color-neutral-600)')}>Total interruptions </span><strong>{hm(t.interruptMins)}</strong></div>
           </div>
-        </div>
-
-        <div style={st('flex:1;min-width:280px')}>
-          <div style={st(KICKER)}>Case mix</div>
-          <div style={st('margin-top:var(--space-2)')}>
-            <ComplexityBar mix={t.complexity} total={graded} />
-          </div>
-          <ComplexityMeans mins={t.complexityMins} />
         </div>
       </div>
     </ReportShell>
