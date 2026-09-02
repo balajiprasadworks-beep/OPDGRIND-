@@ -173,9 +173,10 @@ Signing in needs two one-time steps in Supabase:
 
 1. Run [`supabase/schema.sql`](supabase/schema.sql) in the SQL editor (the app
    offers the same block with a **Copy SQL** button when it notices the table is
-   not ready). It adds the `clinician_id` column, makes `(clinician_id, date)`
-   the primary key, and replaces the old open policies with ones that scope
-   every row to `auth.uid()`.
+   not ready). It adds the `clinician_id` column, keys the table on
+   `(clinician_id, date)`, and replaces the old open policies with ones that
+   scope every row to `auth.uid()`. It is safe on an empty project, safe over
+   the earlier single-doctor table, and safe to run again.
 2. **Authentication → Sign In / Providers → Email**: turn **Confirm email**
    off, so a new clinician can be created and used straight away. Leave it on
    and sign-up returns an account with no session — the app says exactly that
@@ -183,9 +184,17 @@ Signing in needs two one-time steps in Supabase:
 
 **Days logged before profiles existed** are not lost. On this browser they are
 adopted by the first profile that signs in (the old `opd-flow-log-v1` key is
-copied, never deleted, so it stays a backup). Rows already in Supabase have no
-owner, so no signed-in clinician can see them; to adopt those, copy your
-clinician id from **My profile** and run the last line of `schema.sql`.
+copied, never deleted, so it stays a backup).
+
+Rows already in Supabase are a separate matter. They have no owner, so no
+signed-in clinician can see them — and `clinician_id` is deliberately added
+*nullable* for exactly that reason: in the SQL editor `auth.uid()` is NULL (the
+editor runs as the table's owner and carries no end-user token), so demanding
+`not null` up front would try to stamp NULL onto every existing day and fail
+with `23502`. To claim those days, sign up in the app first, then run the
+adoption statement at the foot of `schema.sql` — by email, or by the clinician
+id shown on **My profile** — and run the script once more. That last run locks
+the column down and promotes `(clinician_id, date)` to the primary key.
 
 Offline is not a lockout: a cached session keeps working, and only a refresh
 token Supabase actually rejects sends you back to the sign-in card.

@@ -6,43 +6,19 @@
 // security — not the app — is what keeps one junior's patients out of another's
 // log.
 
+import schemaSql from '../../supabase/schema.sql?raw'
+
 import { cloudConfig } from '../config.js'
 import { accessToken, isConfigured as authConfigured } from './auth.js'
 import { normalizeDay, hasContent } from './store.js'
 
 export const TABLE = 'opd_days'
 
-export const SETUP_SQL = `-- OPDGrind cloud store, scoped per clinician. Safe to re-run.
-create table if not exists public.opd_days (
-  date text not null,
-  data jsonb not null,
-  updated_at timestamptz not null default now()
-);
-
--- Each row belongs to the clinician who wrote it.
-alter table public.opd_days
-  add column if not exists clinician_id uuid not null default auth.uid();
-
--- One row per clinician per day.
-alter table public.opd_days drop constraint if exists opd_days_pkey;
-alter table public.opd_days add primary key (clinician_id, date);
-
-alter table public.opd_days enable row level security;
-
--- Replace any earlier open-to-anyone policies.
-drop policy if exists "opd read"   on public.opd_days;
-drop policy if exists "opd insert" on public.opd_days;
-drop policy if exists "opd update" on public.opd_days;
-drop policy if exists "opd delete" on public.opd_days;
-
-create policy "opd read"   on public.opd_days for select to authenticated using (auth.uid() = clinician_id);
-create policy "opd insert" on public.opd_days for insert to authenticated with check (auth.uid() = clinician_id);
-create policy "opd update" on public.opd_days for update to authenticated using (auth.uid() = clinician_id) with check (auth.uid() = clinician_id);
-create policy "opd delete" on public.opd_days for delete to authenticated using (auth.uid() = clinician_id);
-
--- Days written before profiles existed have no owner. To adopt them, paste
--- your clinician id (shown on the My profile screen) and run this line:
--- update public.opd_days set clinician_id = 'YOUR-CLINICIAN-ID' where clinician_id is null;`
+// The one-time setup block, shown in the app with a Copy button. Imported from
+// the file itself rather than copied here: two hand-maintained copies of a
+// hundred-line migration drift, and the one the doctor pastes has to be the one
+// that was actually tested.
+export const SETUP_SQL = schemaSql
 
 // 404 means the table isn't there yet; 401/403 means the policies aren't (or
 // the column isn't). Both are the same story for the doctor: run the setup SQL
