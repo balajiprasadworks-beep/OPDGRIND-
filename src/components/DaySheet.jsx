@@ -5,6 +5,7 @@ import { st } from '../lib/css.js'
 import { dur, istDate, istTime, toMin } from '../lib/time.js'
 import { COMPLEXITY, FIELDS, blankRow, complexityLabel } from '../lib/store.js'
 import { SETUP_SQL } from '../lib/supabase.js'
+import { displayName } from '../lib/auth.js'
 import Greeting, { GREETING_MS } from './Greeting.jsx'
 
 // The investigations rail — one tap instead of typing the same order out again.
@@ -43,7 +44,7 @@ export default function DaySheet({
 }) {
   // The sheet is headed and signed by whoever is logged in — on a shared
   // department computer that is the whole point of the profiles.
-  const clinicianName = (user && user.full_name) || config.doctorName
+  const clinicianName = displayName(user)
   const [clock, setClock] = useState(istTime)
   const [chip, setChip] = useState(null)
   const [greeting, setGreeting] = useState(null)

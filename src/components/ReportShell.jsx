@@ -3,6 +3,7 @@ import React from 'react'
 import { config } from '../config.js'
 import { st } from '../lib/css.js'
 import { dateLong, istDate } from '../lib/time.js'
+import { displayName } from '../lib/auth.js'
 
 // The frame both reports share: masthead, the period stepper, the double rule
 // the sheet uses, and the signature block at the foot. Having one frame is what
@@ -27,7 +28,7 @@ export function Figure({ value, label, note, wide }) {
 export default function ReportShell({
   user, kicker, title, onPrev, onNext, onCurrent, currentLabel, atCurrent, onBack, children
 }) {
-  const name = (user && user.full_name) || config.doctorName
+  const name = displayName(user)
 
   return (
     <div className="report-shell">

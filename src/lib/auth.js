@@ -95,6 +95,18 @@ function sessionFrom(payload) {
 
 export const currentUser = () => (cached ? cached.user : null)
 
+// The name to head a sheet, a report and a signature line with.
+//
+// It deliberately never falls back to the configured doctor's name: on a shared
+// department machine that would print one clinician's name over another's work,
+// and a report is signed. An email address is not a handsome label, but it is
+// unambiguously the right person — and the drawer nudges for a real name.
+export function displayName(user) {
+  if (!user) return ''
+  const named = (user.full_name || '').trim()
+  return named || (user.email || '').trim() || 'Clinician'
+}
+
 /* ── the flows ──────────────────────────────────────────────────────────── */
 
 export async function signIn(email, password) {

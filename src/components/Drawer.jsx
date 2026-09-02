@@ -17,6 +17,8 @@ export default function Drawer({ open, onClose, user, view, onNavigate, onSignOu
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
+  const named = ((user && user.full_name) || '').trim()
+
   const items = [
     { id: 'profile', label: 'My profile', note: 'name · email · password' },
     { id: 'week', label: 'Weekly report', note: 'Monday to Saturday' },
@@ -32,9 +34,21 @@ export default function Drawer({ open, onClose, user, view, onNavigate, onSignOu
           <div style={st('font:400 12px/1.2 var(--font-body);color:var(--color-neutral-600);letter-spacing:.08em;text-transform:uppercase')}>
             Signed in
           </div>
-          <div style={st('margin-top:6px;font:600 19px/1.2 var(--font-heading);letter-spacing:-.01em;word-break:break-word')}>
-            {(user && user.full_name) || 'Clinician'}
-          </div>
+          {named ? (
+            <div style={st('margin-top:6px;font:600 19px/1.2 var(--font-heading);letter-spacing:-.01em;word-break:break-word')}>
+              {named}
+            </div>
+          ) : (
+            // No display name yet — say so where it will be noticed, because
+            // this is the name that heads and signs every report printed.
+            <button
+              type="button"
+              onClick={() => onNavigate('profile')}
+              style={st('display:block;margin-top:6px;padding:0;text-align:left;background:none;border:none;cursor:pointer;font:600 17px/1.25 var(--font-heading);color:var(--color-accent-700);text-decoration:underline;text-underline-offset:3px')}
+            >
+              Add your display name
+            </button>
+          )}
           <div style={st('margin-top:3px;font:400 13.5px/1.35 var(--font-body);color:var(--color-neutral-600);word-break:break-all')}>
             {(user && user.email) || ''}
           </div>

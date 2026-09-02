@@ -166,8 +166,16 @@ password. The log, the reports and the cloud rows are all scoped to whoever is
 signed in, so two juniors sharing the department computer keep two separate
 logs and neither can read the other's patients.
 
-The drawer behind the arrow beside the date holds **My profile** — name, email
-and password, all changeable — plus the two reports and **Sign out**.
+The drawer behind the arrow beside the date holds **My profile** — display name,
+email and password, all changeable — plus the two reports and **Sign out**.
+
+The display name is what heads the sheet, heads both reports, and signs the
+printed page, so it is worth setting properly ("Dr A. Kumar", not "akumar").
+Until one is set the app falls back to the clinician's email address — never to
+`VITE_DOCTOR_NAME`, because on a shared department machine that would print one
+clinician's name over another's work, and a report is a signed document. A
+profile with no name yet says so in the drawer, with a link straight to the
+field.
 
 Signing in needs two one-time steps in Supabase:
 
