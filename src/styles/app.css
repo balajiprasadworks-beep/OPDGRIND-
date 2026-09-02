@@ -8,16 +8,98 @@ a:hover { color: var(--color-accent-600); text-decoration: underline; }
 .log-table td { vertical-align: top; }
 :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 
+/* The screen/paper pair: .screen-only is chrome the paper sheet does not want,
+   .print-only is the plain text that stands in for an interactive control. */
+.print-only { display: none; }
+
 /* Interaction states the design canvas carried as style-hover / style-focus
    attributes; as a real page they belong in the stylesheet. */
 .type-cell:focus { box-shadow: 0 0 0 2px var(--color-accent); }
 .outnow:hover { background: var(--color-accent-600); }
 .chip:hover { background: var(--color-accent-200); }
 
+/* ── the dashboard arrow and drawer ─────────────────────────────────────
+   The arrow sits immediately left of the weekday heading, in a box the size
+   of that heading's own type, so it lands on the cap height of "Monday"
+   rather than floating beside it. */
+.drawer-arrow {
+  flex: none; width: 30px; height: 46px; margin-top: 8px; padding: 0;
+  display: grid; place-items: center;
+  background: none; border: none; cursor: pointer;
+  color: var(--color-neutral-500); transition: color .12s ease;
+}
+.drawer-arrow svg { display: block; width: 20px; height: 34px; }
+.drawer-arrow:hover { color: var(--color-accent); }
+
+.drawer-root { position: fixed; inset: 0; z-index: 40; pointer-events: none; }
+.drawer-root.is-open { pointer-events: auto; }
+.drawer-scrim {
+  position: absolute; inset: 0; opacity: 0; transition: opacity .18s ease;
+  background: color-mix(in srgb, var(--color-neutral-900) 34%, transparent);
+}
+.drawer-root.is-open .drawer-scrim { opacity: 1; }
+.drawer-panel {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 268px; overflow-y: auto;
+  background: var(--color-neutral-100); border-right: 1px solid var(--color-text);
+  box-shadow: var(--shadow-md);
+  transform: translateX(-100%); transition: transform .18s ease;
+}
+.drawer-root.is-open .drawer-panel { transform: translateX(0); }
+.drawer-item:hover { background: color-mix(in srgb, var(--color-text) 6%, transparent); }
+.drawer-item.is-current { background: var(--color-accent-100); }
+
+/* Wide enough and the drawer takes its own space instead of covering the
+   sheet — margin rather than a transform, so nothing slides off the page. */
+@media (min-width: 1100px) {
+  .log-shell { transition: margin-left .18s ease; }
+  .log-shell.is-shifted { margin-left: 268px; }
+  .drawer-root.is-open .drawer-scrim { opacity: 0; pointer-events: none; }
+}
+
+/* ── the Hello! / Caio! greeting ────────────────────────────────────────
+   Anchored under the walk in / walk out control that was clicked, never over
+   the sheet, and never able to swallow a click. In at 160ms, held for 1200ms,
+   out over 380ms — the 1740ms total is GREETING_MS in Greeting.jsx, and the
+   two have to stay in step. */
+/* The lane is always present and always this size, so a greeting arriving —
+   or leaving — never nudges the row it sits in. */
+.greeting-lane { position: relative; flex: none; width: 148px; height: 48px; }
+.greeting {
+  position: absolute; left: 0; top: 0; z-index: 30;
+  pointer-events: none;
+  animation: greet 1740ms ease-out both;
+}
+.greeting-art {
+  display: block; height: 46px; width: auto;
+  filter: drop-shadow(0 2px 6px color-mix(in srgb, #2d2b2b 18%, transparent));
+}
+
+@keyframes greet {
+  0%    { opacity: 0; transform: translateY(6px) scale(.94); }
+  9.2%  { opacity: 1; transform: translateY(0) scale(1); }
+  78.2% { opacity: 1; transform: translateY(0) scale(1); }
+  100%  { opacity: 0; transform: translateY(-4px) scale(1); }
+}
+
+/* Same beat, no movement. */
+@media (prefers-reduced-motion: reduce) {
+  .greeting { animation: greet-fade 1740ms linear both; }
+  .drawer-panel, .drawer-scrim, .log-shell, .drawer-arrow { transition: none; }
+  @keyframes greet-fade {
+    0% { opacity: 0; } 9.2% { opacity: 1; } 78.2% { opacity: 1; } 100% { opacity: 0; }
+  }
+}
+
 @media print {
-  @page { size: A4 landscape; margin: 11mm; }
+  /* The @page box is set at runtime in App.jsx — landscape for the sheet,
+     portrait for a report. It cannot live here: @page is global, and CSS has
+     no way to vary it per screen. */
   .screen-only { display: none !important; }
-  .log-shell { padding: 0 !important; }
+  .print-only { display: inline; }
+  /* The shell is a full-height screen surface; on paper that min-height is a
+     blank page's worth of nothing, and any sub-pixel overflow past it starts a
+     second sheet. */
+  .log-shell { padding: 0 !important; margin-left: 0 !important; min-height: 0 !important; }
   body { background: #fff; }
   .log-table { font-size: 10.5pt !important; }
   .log-table th, .log-table td { border: 1px solid #8d8a8a !important; padding: 3px 5px !important; }

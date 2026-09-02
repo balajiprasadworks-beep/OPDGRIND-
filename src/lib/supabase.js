@@ -1,67 +1,83 @@
 // Cloud sync over Supabase's PostgREST endpoint — plain fetch, no SDK, so the
-// page stays small and the wire format is obvious. One row per day:
-// opd_days(date text primary key, data jsonb, updated_at timestamptz).
+// page stays small and the wire format is obvious. One row per clinician per
+// day: opd_days(clinician_id uuid, date text, data jsonb, updated_at).
+//
+// Every request rides the signed-in clinician's own access token, so row-level
+// security — not the app — is what keeps one junior's patients out of another's
+// log.
+
+import schemaSql from '../../supabase/schema.sql?raw'
 
 import { cloudConfig } from '../config.js'
+import { accessToken, isConfigured as authConfigured } from './auth.js'
 import { normalizeDay, hasContent } from './store.js'
 
 export const TABLE = 'opd_days'
 
-export const SETUP_SQL = `create table if not exists public.opd_days (
-  date text primary key,
-  data jsonb not null,
-  updated_at timestamptz not null default now()
-);
-alter table public.opd_days enable row level security;
-create policy "opd read"   on public.opd_days for select to anon using (true);
-create policy "opd insert" on public.opd_days for insert to anon with check (true);
-create policy "opd update" on public.opd_days for update to anon using (true) with check (true);`
+// The one-time setup block, shown in the app with a Copy button. Imported from
+// the file itself rather than copied here: two hand-maintained copies of a
+// hundred-line migration drift, and the one the doctor pastes has to be the one
+// that was actually tested.
+export const SETUP_SQL = schemaSql
 
-function headers(key) {
-  return { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' }
-}
-
-// 404 means the table isn't there yet; 401/403 means the policies aren't.
-// Both are the same story for the doctor: run the setup SQL once.
+// 404 means the table isn't there yet; 401/403 means the policies aren't (or
+// the column isn't). Both are the same story for the doctor: run the setup SQL
+// once. 400 usually means the table predates clinician_id — same fix.
 function restError(status, what) {
   const err = new Error(status === 404 ? 'Cloud not set up yet' : what + ' (HTTP ' + status + ')')
-  err.setup = status === 404 || status === 401 || status === 403
+  err.setup = status === 404 || status === 401 || status === 403 || status === 400
   return err
 }
 
 export function isConfigured() {
   const cfg = cloudConfig()
-  return !!(cfg.url && cfg.key)
+  return !!(cfg.url && cfg.key) && authConfigured()
 }
 
-// Upsert the named days. `on_conflict=date` + merge-duplicates makes this an
-// insert-or-update in one round trip.
-export async function pushDays(keys, store) {
+async function authHeaders() {
+  const token = await accessToken()
+  if (!token) {
+    const err = new Error('Signed out — sign in to sync')
+    err.auth = true
+    throw err
+  }
+  return {
+    apikey: cloudConfig().key,
+    Authorization: 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  }
+}
+
+// Upsert the named days for this clinician. `on_conflict=clinician_id,date`
+// plus merge-duplicates makes this an insert-or-update in one round trip.
+export async function pushDays(keys, store, clinicianId) {
   const cfg = cloudConfig()
-  if (!cfg.url || !keys.length) return
+  if (!cfg.url || !keys.length || !clinicianId) return
 
   const body = keys
     .filter((k) => store[k])
     .map((k) => ({
+      clinician_id: clinicianId,
       date: k,
       data: store[k],
       updated_at: store[k].updatedAt || new Date().toISOString()
     }))
   if (!body.length) return
 
-  const res = await fetch(cfg.url + '/rest/v1/' + TABLE + '?on_conflict=date', {
+  const res = await fetch(cfg.url + '/rest/v1/' + TABLE + '?on_conflict=clinician_id,date', {
     method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=minimal', ...headers(cfg.key) },
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal', ...(await authHeaders()) },
     body: JSON.stringify(body)
   })
   if (!res.ok) throw restError(res.status, 'Cloud save failed')
 }
 
-export async function fetchDays() {
+// The policies already restrict this to the caller's own rows; the explicit
+// filter keeps it true even if someone loosens them later.
+export async function fetchDays(clinicianId) {
   const cfg = cloudConfig()
-  const res = await fetch(cfg.url + '/rest/v1/' + TABLE + '?select=date,data,updated_at', {
-    headers: headers(cfg.key)
-  })
+  const query = '?select=date,data,updated_at&clinician_id=eq.' + encodeURIComponent(clinicianId)
+  const res = await fetch(cfg.url + '/rest/v1/' + TABLE + query, { headers: await authHeaders() })
   if (!res.ok) throw restError(res.status, 'Cloud read failed')
   return (await res.json()) || []
 }
