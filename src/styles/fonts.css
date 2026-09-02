@@ -164,3 +164,17 @@
   src: url('../fonts/SourceSerif4-normal-400-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
+
+/* Pacifico — the greeting face, and the only place it is used: the Hello! /
+   Caio! pop-ups that mark the start and end of a clinic day. Subset to the
+   eight glyphs those two words need (H e l o C a i !), which is why it is 5KB
+   rather than 60, and vendored like Source Serif 4 so the greeting still draws
+   on a machine with no internet. SIL Open Font License 1.1. */
+@font-face {
+  font-family: 'Pacifico Greeting';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('../fonts/Pacifico-greeting-subset.woff2') format('woff2');
+  unicode-range: U+21, U+43, U+48, U+61, U+65, U+69, U+6C, U+6F;
+}
