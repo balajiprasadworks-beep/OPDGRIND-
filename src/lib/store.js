@@ -138,7 +138,10 @@ export function hasContent(day) {
   const s = day.session || {}
   const rows = day.rows || []
   return rows.some((r) => (r.name || '').trim() || (r.opd || '').trim() || (r.asked || '').trim()) ||
-    !!s.inT || !!s.outT
+    !!s.inT || !!s.outT ||
+    // A break or an interruption typed in by hand is content of its own: a day
+    // whose only entry is a corrected break still has to reach the cloud.
+    (s.breaks || []).length > 0 || (s.interruptions || []).length > 0
 }
 
 // A row counts as a patient once it carries a name or an OPD number — the same
