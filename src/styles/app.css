@@ -16,7 +16,6 @@ a:hover { color: var(--color-accent-600); text-decoration: underline; }
    attributes; as a real page they belong in the stylesheet. */
 .type-cell:focus { box-shadow: 0 0 0 2px var(--color-accent); }
 .outnow:hover { background: var(--color-accent-600); }
-.chip:hover { background: var(--color-accent-200); }
 
 /* ── the dashboard arrow and drawer ─────────────────────────────────────
    The arrow sits immediately left of the weekday heading, in a box the size

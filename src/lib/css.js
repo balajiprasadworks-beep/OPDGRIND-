@@ -1,6 +1,6 @@
 // The design canvas wrote inline styles as CSS text, and the app still
-// computes several of them (pill fills, the sync line's colour, the chip
-// rail's slide). React wants an object, so parse once and cache: the same
+// computes several of them (pill fills, the sync line's colour, a running
+// break's tint). React wants an object, so parse once and cache: the same
 // declaration string maps to the same frozen object on every render.
 
 const cache = new Map()
