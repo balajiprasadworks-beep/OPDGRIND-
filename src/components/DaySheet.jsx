@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 
 import { config } from '../config.js'
 import { st } from '../lib/css.js'
-import { dur, istDate, istTime, toMin } from '../lib/time.js'
+import { dur, hm, istDate, istTime, toMin } from '../lib/time.js'
 import { COMPLEXITY, FIELDS, blankRow, complexityLabel } from '../lib/store.js'
 import { SETUP_SQL } from '../lib/supabase.js'
 import Greeting, { GREETING_MS } from './Greeting.jsx'
@@ -36,7 +36,33 @@ const spanTotal = (list) => (list || []).reduce((sum, s) => {
   return sum + m
 }, 0)
 
-const running = (list) => (list || []).length > 0 && !list[list.length - 1].in
+// A clock that was started and never stopped. A wholly blank line is one being
+// typed in by hand after the fact, not a clock left running.
+const spanOpen = (s) => !!s && toMin(s.out) != null && !(s.in || '').trim()
+
+const openIndex = (list) => {
+  const l = list || []
+  for (let i = l.length - 1; i >= 0; i -= 1) if (spanOpen(l[i])) return i
+  return -1
+}
+
+const running = (list) => openIndex(list) > -1
+
+const pad2 = (n) => String(n).padStart(2, '0')
+
+// "930", "9.30", "0930", "9" all become "09:30" / "09:00" when the cell is left.
+// Anything that is not a time comes back untouched, so a half-typed entry is
+// never eaten mid-keystroke — it just stays red until it reads as a clock time.
+const tidyTime = (raw) => {
+  const t = (raw || '').trim()
+  if (!t) return ''
+  const m = /^(\d{1,2})[:.\s-]?(\d{2})$/.exec(t) || /^(\d{1,2})$/.exec(t)
+  if (!m) return t
+  const h = +m[1]
+  const min = m[2] == null ? 0 : +m[2]
+  if (h > 23 || min > 59) return t
+  return pad2(h) + ':' + pad2(min)
+}
 
 export default function DaySheet({
   store, dateKey, user, onOpenDay, onWriteDay, onExport, onImport, sync, onSync, onOpenDrawer, drawerOpen
@@ -150,8 +176,19 @@ export default function DaySheet({
   const breakMins = spanTotal(bList)
   const interruptMins = spanTotal(iList)
 
-  const label = (s) => (s.out || '--:--') + ' → ' + (s.in || 'out now') +
+  const label = (s) => (s.out || '--:--') + ' → ' + (s.in || 'still out') +
     (toMin(s.out) != null && toMin(s.in) != null ? ' · ' + spanTotal([s]) + 'm' : '')
+
+  // What a clock still running has cost so far, read off the ticking IST clock.
+  // A break only counts once it is closed, so this is the number that has to be
+  // on screen — otherwise a forgotten break is invisible until the day is over.
+  const soFar = (s) => {
+    const from = toMin(s.out)
+    const now = toMin(clock)
+    if (from == null || now == null) return null
+    const m = now - from
+    return m < 0 ? m + 1440 : m
+  }
 
   const jIn = toMin(sess.inT)
   const jOut = toMin(sess.outT)
@@ -204,12 +241,55 @@ export default function DaySheet({
   }
 
   // One toggle serves both clocks: stamp the end of the span that is running,
-  // or open a new one.
+  // or open a new one. It closes whichever span is open rather than only the
+  // last one, so a span reopened by hand cannot leave two clocks running.
   const toggleSpan = (field) => {
     const list = (sess[field] || []).slice()
-    if (running(list)) list[list.length - 1] = { ...list[list.length - 1], in: istTime() }
+    const open = openIndex(list)
+    if (open > -1) list[open] = { ...list[open], in: istTime() }
     else list.push({ out: istTime(), in: '', why: '' })
     setSess({ [field]: list })
+  }
+
+  const writeSpan = (field, n, changes) => {
+    const list = (sess[field] || []).slice()
+    if (!list[n]) return
+    list[n] = { ...list[n], ...changes }
+    setSess({ [field]: list })
+  }
+
+  // Both ends of every break and interruption are typed as well as stamped —
+  // the clock is a convenience, not the record. Start break at 13:05, get
+  // pulled into a ward call and forget to stop it, and the fix is to type the
+  // time you actually sat back down.
+  const editSpan = (e) => {
+    const ds = e.target.dataset
+    writeSpan(ds.field, +ds.span, { [ds.end]: e.target.value })
+  }
+
+  const tidySpan = (e) => {
+    const ds = e.target.dataset
+    const tidy = tidyTime(e.target.value)
+    if (tidy !== e.target.value) writeSpan(ds.field, +ds.span, { [ds.end]: tidy })
+  }
+
+  // A break started by mistake should go in one click; a finished one that
+  // carries real minutes asks first, the way deleting a patient row does.
+  const removeSpan = (e) => {
+    const ds = e.currentTarget.dataset
+    const list = (sess[ds.field] || []).slice()
+    const s = list[+ds.span]
+    if (!s) return
+    if (spanTotal([s]) > 0 && !window.confirm('Delete ' + label(s) + '?')) return
+    list.splice(+ds.span, 1)
+    setSess({ [ds.field]: list })
+  }
+
+  // The mirror of the forgotten stop: a break taken with nobody near the
+  // keyboard, written in afterwards from memory.
+  const addSpan = (e) => {
+    const field = e.currentTarget.dataset.field
+    setSess({ [field]: (sess[field] || []).concat([{ out: '', in: '', why: '' }]) })
   }
 
   const setWhy = (e) => {
@@ -294,6 +374,17 @@ export default function DaySheet({
     'font:600 13px/1 var(--font-body);padding:7px 10px;border-radius:var(--radius-md);cursor:pointer;border:1px solid ' +
     (on ? color : 'var(--color-neutral-400)') + ';background:' + (on ? color : 'transparent') +
     ';color:' + (on ? '#fff' : 'var(--color-neutral-800)')
+  // A span reads as a small box on screen: two typed times, its minutes, and a
+  // kill button. Open ones are tinted in their clock's own colour so a break
+  // left running is the loudest thing in the block.
+  const spanBox = (open, color) =>
+    'display:inline-flex;align-items:center;gap:4px;padding:2px 4px 2px 6px;border-radius:var(--radius-md);border:1px solid ' +
+    (open ? color : 'var(--color-neutral-300)') + ';background:' + (open ? 'var(--color-accent-100)' : 'transparent')
+  const spanInput = (value) =>
+    'width:50px;font:600 15px/1 var(--font-body);font-variant-numeric:tabular-nums;text-align:center;background:transparent;border:none;border-bottom:1px solid var(--color-neutral-400);padding:3px 0;outline:none;color:' +
+    ((value || '').trim() && toMin(value) == null ? 'var(--color-accent-2-700)' : 'var(--color-text)')
+  const spanKill = 'background:none;border:none;cursor:pointer;color:var(--color-neutral-500);font:600 15px/1 var(--font-body);padding:2px 3px'
+  const addStyle = 'font:600 13px/1 var(--font-body);padding:7px 9px;border-radius:var(--radius-md);cursor:pointer;border:1px dashed var(--color-neutral-400);background:transparent;color:var(--color-neutral-700)'
   const railStyle = 'position:fixed;left:0;right:0;bottom:0;padding:12px 20px;background:var(--color-neutral-100);border-top:1px solid var(--color-text);box-shadow:var(--shadow-md);transition:transform .16s ease;transform:translateY(' +
     (showRail ? '0' : '110%') + ')'
 
@@ -373,33 +464,91 @@ export default function DaySheet({
             </div>
 
             {[
-              { field: 'breaks', title: 'Breaks', list: bList, on: onBreak, mins: breakMins,
+              { field: 'breaks', title: 'Breaks', noun: 'Break', list: bList, on: onBreak, mins: breakMins,
                 color: 'var(--color-accent-600)', idle: 'Start break', busy: 'Back from break' },
-              { field: 'interruptions', title: 'Interruptions', list: iList, on: onInterrupt, mins: interruptMins,
+              { field: 'interruptions', title: 'Interruptions', noun: 'Interruption', list: iList, on: onInterrupt,
+                mins: interruptMins,
                 color: 'var(--color-accent-2-600)', idle: 'Interruption', busy: 'End interruption' }
             ].map((clock2) => (
               <div key={clock2.field} style={st('display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap')}>
                 <span style={st('color:var(--color-neutral-600);min-width:104px')}>{clock2.title}</span>
-                {clock2.list.map((s, n) => (
-                  <span key={n} style={st('display:inline-flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums;font-size:15px')}>
-                    {label(s)}
-                    {clock2.field === 'interruptions' && (
-                      <input
-                        data-span={n}
-                        value={s.why || ''}
-                        onChange={setWhy}
-                        placeholder="why?"
-                        style={st('width:96px;font:italic 400 14px/1 var(--font-body);color:var(--color-neutral-700);background:transparent;border:none;border-bottom:1px dotted var(--color-neutral-400);padding:2px 0;outline:none')}
-                      />
-                    )}
-                  </span>
-                ))}
+                {clock2.list.map((s, n) => {
+                  const open = spanOpen(s)
+                  const mins = spanTotal([s])
+                  const elapsed = open ? soFar(s) : null
+                  return (
+                    <span key={n} style={st('display:inline-flex;align-items:center;font-variant-numeric:tabular-nums;font-size:15px')}>
+                      {/* On paper the same span is plain text — a printed sheet
+                          wants the times, not the boxes they were typed into. */}
+                      <span className="print-only">
+                        {label(s)}
+                        {clock2.field === 'interruptions' && (s.why || '').trim() ? ' (' + s.why.trim() + ')' : ''}
+                        {'\u00a0\u00a0'}
+                      </span>
+                      <span className="screen-only" style={st(spanBox(open, clock2.color))}>
+                        <input
+                          data-field={clock2.field}
+                          data-span={n}
+                          data-end="out"
+                          value={s.out || ''}
+                          onChange={editSpan}
+                          onBlur={tidySpan}
+                          placeholder="--:--"
+                          aria-label={clock2.noun + ' ' + (n + 1) + ' start time'}
+                          style={st(spanInput(s.out))}
+                        />
+                        <span style={st('color:var(--color-neutral-500)')}>→</span>
+                        <input
+                          data-field={clock2.field}
+                          data-span={n}
+                          data-end="in"
+                          value={s.in || ''}
+                          onChange={editSpan}
+                          onBlur={tidySpan}
+                          placeholder="--:--"
+                          aria-label={clock2.noun + ' ' + (n + 1) + ' end time'}
+                          style={st(spanInput(s.in))}
+                        />
+                        <span style={st('font-size:13.5px;min-width:34px;color:' + (open ? clock2.color : 'var(--color-neutral-600)'))}>
+                          {open ? (elapsed == null ? 'running' : hm(elapsed) + ' so far') : (mins ? mins + 'm' : '')}
+                        </span>
+                        {clock2.field === 'interruptions' && (
+                          <input
+                            data-span={n}
+                            value={s.why || ''}
+                            onChange={setWhy}
+                            placeholder="why?"
+                            aria-label={'Interruption ' + (n + 1) + ' reason'}
+                            style={st('width:96px;font:italic 400 14px/1 var(--font-body);color:var(--color-neutral-700);background:transparent;border:none;border-bottom:1px dotted var(--color-neutral-400);padding:2px 0;outline:none')}
+                          />
+                        )}
+                        <button
+                          type="button"
+                          data-field={clock2.field}
+                          data-span={n}
+                          onClick={removeSpan}
+                          title={'Delete this ' + clock2.noun.toLowerCase()}
+                          aria-label={'Delete ' + clock2.noun.toLowerCase() + ' ' + (n + 1)}
+                          style={st(spanKill)}
+                        >×</button>
+                      </span>
+                    </span>
+                  )
+                })}
                 {clock2.list.length === 0 && (
                   <span style={st('color:var(--color-neutral-500);font-style:italic;font-size:15px')}>none</span>
                 )}
+                <button type="button" className="screen-only" data-field={clock2.field} onClick={addSpan} style={st(addStyle)}>
+                  + Add by hand
+                </button>
                 <button type="button" className="screen-only" onClick={() => toggleSpan(clock2.field)} style={st(toggleStyle(clock2.on, clock2.color))}>
                   {clock2.on ? clock2.busy : clock2.idle}
                 </button>
+                {clock2.on && (
+                  <span className="screen-only" style={st('font:italic 400 13.5px/1.4 var(--font-body);color:var(--color-accent-2-700)')}>
+                    still running, and counts nothing until it is closed — press “{clock2.busy}”, or type the end time
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -576,8 +725,19 @@ export default function DaySheet({
         <div style={st('margin-top:var(--space-2);display:flex;gap:var(--space-6);flex-wrap:wrap;font:400 16px/1.5 var(--font-body);font-variant-numeric:tabular-nums')}>
           <div><span style={st('color:var(--color-neutral-600)')}>JR walk in </span><strong>{sess.inT}</strong></div>
           <div><span style={st('color:var(--color-neutral-600)')}>JR walk out </span><strong>{sess.outT}</strong></div>
-          <div><span style={st('color:var(--color-neutral-600)')}>Break time </span><strong>{breakMins ? breakMins + ' min' : '—'}</strong></div>
-          <div><span style={st('color:var(--color-neutral-600)')}>Interruptions </span><strong>{interruptMins ? interruptMins + ' min' : '—'}</strong></div>
+          {/* An open clock contributes nothing to these totals, so the day
+              close has to say one is open — otherwise the sheet quietly
+              under-reports the time that went missing. */}
+          <div>
+            <span style={st('color:var(--color-neutral-600)')}>Break time </span>
+            <strong>{breakMins ? breakMins + ' min' : '—'}</strong>
+            {onBreak && <span style={st('color:var(--color-accent-2-700);font-size:14px')}> · one still open</span>}
+          </div>
+          <div>
+            <span style={st('color:var(--color-neutral-600)')}>Interruptions </span>
+            <strong>{interruptMins ? interruptMins + ' min' : '—'}</strong>
+            {onInterrupt && <span style={st('color:var(--color-accent-2-700);font-size:14px')}> · one still open</span>}
+          </div>
           <div><span style={st('color:var(--color-neutral-600)')}>Net time in OPD </span><strong>{netTime}</strong></div>
           <div><span style={st('color:var(--color-neutral-600)')}>Patients </span><strong>{statPatients}</strong></div>
           <div><span style={st('color:var(--color-neutral-600)')}>Mean per patient </span><strong>{statMean} min</strong></div>

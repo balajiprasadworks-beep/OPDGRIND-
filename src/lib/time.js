@@ -13,11 +13,16 @@ export function istDate() {
   }).format(new Date())
 }
 
-// "09:35" → minutes past midnight; anything else → null.
+// "09:35" → minutes past midnight; anything else → null. A time off the clock
+// face — "99:99" from a slipped keystroke — is not a time: taking it at face
+// value would put 87 hours of break into a day and carry that into the reports.
 export function toMin(t) {
   const m = /^(\d{1,2}):(\d{2})$/.exec((t || '').trim())
   if (!m) return null
-  return (+m[1]) * 60 + (+m[2])
+  const h = +m[1]
+  const min = +m[2]
+  if (h > 23 || min > 59) return null
+  return h * 60 + min
 }
 
 // Minutes between two clock times, wrapping past midnight.

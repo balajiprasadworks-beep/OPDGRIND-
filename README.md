@@ -150,6 +150,22 @@ can carry a one-word reason. Both feed the day-close block — break time,
 interruptions, net time in OPD (the walk in-to-out span less both), patients seen
 and mean minutes per patient.
 
+Neither clock is the last word on itself. **Both ends of every break and
+interruption are typed as well as stamped**, because the commonest thing that
+happens to a break is that nobody stops it: you press **Start break** at 13:05,
+get pulled into a ward call, and sit back down at 13:30 without touching the
+keyboard. So a running clock is tinted in its own colour and carries a live
+*"25m so far"* beside it, the day close says *one still open* rather than
+quietly reporting nothing, and the fix is simply to type `1330` into the second
+box — `930`, `9.30`, `0930` and `9` are all understood, and tidy themselves into
+`09:30` when you leave the cell. A time that is not on the clock face stays red
+and counts for nothing until it is corrected.
+
+**×** removes a span; one begun by mistake goes in a single click, one that
+carries real minutes asks first. **+ Add by hand** writes in a break nobody was
+at the keyboard to clock — the mirror of the same problem. The printed sheet is
+unaffected by any of it: on paper the spans are plain text, as before.
+
 Clicking **now** under *JR walk in* raises a small **Hello!**, and under *JR walk
 out* a **Caio!** — about a second and a half, in its own lane so it never covers
 the sheet, and never able to swallow a click.
