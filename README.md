@@ -92,7 +92,6 @@ optional and falls back to the defaults the artifact shipped with.
 | `VITE_DOCTOR_NAME` | Fallback name in the header and under the signature rule, used until a clinician signs in |
 | `VITE_UNIT_LINE` | Department line beside the name |
 | `VITE_TARGET_MINUTES` | Minutes per patient above which the Min column turns red (default 12) |
-| `VITE_SHOW_CHIP_RAIL` | `false` hides the investigations chip rail |
 
 Vite inlines these at build time, so change `.env` and rebuild. To repoint one
 browser at a different project without rebuilding, set an override from the
@@ -140,8 +139,20 @@ Time In stamps itself the moment you start typing a name, **Out now** stamps the
 exit, and the Min column colours red past the target. `Enter` moves to the next
 cell, `↓`/`↑` move between patients, `N`/`R` set New/Review on the Case cell, and
 `1`/`2`/`3` set MID/HIGH/V.HIGH on the Complexity cell — clicking a pill that is
-already on clears it. Focusing *Investigations asked* or *Done before walk-in*
-raises the chip rail — ECG, ECHO, TROP and the rest go in with one tap.
+already on clears it.
+
+The two columns about investigations are answers, not lists. *Investigations
+asked* is **Yes** / **No** (`Y`/`N`), and *Brought reports* — what the patient
+walked in holding — is **No** / **Yes** / **Many** (`N`/`Y`/`M`). Many is its
+own answer rather than a louder yes: a folder of outside reports is a different
+consultation from one ECG, and it is the one that runs long. Both were free
+text with a rail of investigation chips before, and neither got filled in
+during a running clinic; a column nobody answers is worse than a narrow one.
+
+**Days already logged are not rewritten.** The investigations a patient was
+actually sent for are worth more than tidy storage, so the old text is left
+exactly where it is and simply reads as *Yes* until someone presses a pill on
+that row — which is the point at which they have said what they mean.
 
 Time away from the desk is kept on two separate clocks, because a planned break
 and a ward call are not the same number: **Start break** for the planned kind,
@@ -172,8 +183,8 @@ the sheet, and never able to swallow a click.
 
 **Print paper sheet** lays the day out A4 landscape and hides all the
 screen-only controls (and the "if delayed, why" column when no row uses it);
-complexity prints as plain text rather than as pills. The reports print A4
-portrait, one page each.
+complexity, investigations asked and brought reports all print as plain text
+rather than as pills. The reports print A4 portrait, one page each.
 
 ## Clinician profiles
 

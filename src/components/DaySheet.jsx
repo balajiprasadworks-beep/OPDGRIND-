@@ -3,13 +3,9 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { config } from '../config.js'
 import { st } from '../lib/css.js'
 import { dur, hm, istDate, istTime, toMin } from '../lib/time.js'
-import { COMPLEXITY, FIELDS, blankRow, complexityLabel } from '../lib/store.js'
+import { COMPLEXITY, FIELDS, OPTIONS, blankRow, complexityLabel, codeOf, optionLabel } from '../lib/store.js'
 import { SETUP_SQL } from '../lib/supabase.js'
 import Greeting, { GREETING_MS } from './Greeting.jsx'
-
-// The investigations rail — one tap instead of typing the same order out again.
-const CHIPS = ('ECG,ECHO,BASIC NON FASTING,BASIC FASTING,CXR,VIT B12,VIT D,NT-PRO-BNP,LIPID,RFT,LFT,' +
-  'CREAT,K+,CBC,TSH,HBA1C,TROP,PBS,OCCULT,FBS,PPBS,RBS,TFT,URINE-R,APOA APOB,LIPO-A,ELECTROLYTES,CTCA,ESR,CRP').split(',')
 
 const CLOCK_TICK_MS = 20000
 
@@ -71,7 +67,6 @@ export default function DaySheet({
   // department computer that is the whole point of the profiles.
   const clinicianName = (user && user.full_name) || config.doctorName
   const [clock, setClock] = useState(istTime)
-  const [chip, setChip] = useState(null)
   const [greeting, setGreeting] = useState(null)
 
   const fileRef = useRef(null)
@@ -133,6 +128,10 @@ export default function DaySheet({
       newStyle: pill(r.type === 'New', 'var(--color-accent-700)'),
       revStyle: pill(r.type === 'Review', 'var(--color-accent-700)'),
       complexityLabel: complexityLabel(r.complexity),
+      askedCode: codeOf(OPTIONS.asked, r.asked),
+      askedLabel: optionLabel(OPTIONS.asked, r.asked),
+      broughtCode: codeOf(OPTIONS.done, r.done),
+      broughtLabel: optionLabel(OPTIONS.done, r.done),
       hasOut: !!r.outT,
       needsOut: !r.outT
     }
@@ -201,7 +200,6 @@ export default function DaySheet({
   }
 
   const dObj = dateKey ? new Date(dateKey + 'T00:00:00') : new Date()
-  const showRail = config.showChipRail !== false && chip && (chip.field === 'asked' || chip.field === 'done')
   const delayClass = rows.some((r) => (r.delay || '').trim()) ? '' : 'no-delay'
 
   /* ── handlers ─────────────────────────────────────────────────────────── */
@@ -211,7 +209,6 @@ export default function DaySheet({
   const onFocus = (e) => {
     const i = +e.target.dataset.row
     const field = e.target.dataset.field
-    setChip({ row: i, field })
     // Starting to write a name is the moment the patient walked in.
     const r = rows[i]
     if (field === 'name' && r && !r.inT) patch(i, { inT: istTime() })
@@ -229,6 +226,17 @@ export default function DaySheet({
     const v = e.currentTarget.dataset.val
     const r = rows[i]
     patch(i, { complexity: r && r.complexity === v ? '' : v })
+  }
+
+  // Investigations asked and Brought reports are both one-of-a-few answers now,
+  // so they share a handler. Pressing the answer already on clears it, the way
+  // the Case and Complexity pills have always behaved.
+  const setOption = (e) => {
+    const ds = e.currentTarget.dataset
+    const i = +ds.row
+    const r = rows[i]
+    if (!r) return
+    patch(i, { [ds.field]: codeOf(OPTIONS[ds.field], r[ds.field]) === ds.val ? '' : ds.val })
   }
 
   const removeRow = (e) => {
@@ -310,17 +318,6 @@ export default function DaySheet({
     greetTimer.current = setTimeout(() => setGreeting(null), GREETING_MS)
   }
 
-  const addChip = (e) => {
-    e.preventDefault() // keep the caret in the cell the chip is filling
-    if (!chip) return
-    const token = e.currentTarget.dataset.chip
-    const r = rows[chip.row]
-    if (!r) return
-    const current = (r[chip.field] || '').trim()
-    if (current.split(/,\s*/).indexOf(token) > -1) return
-    patch(chip.row, { [chip.field]: current ? current + ', ' + token : token })
-  }
-
   const pickImport = () => fileRef.current && fileRef.current.click()
 
   // Enter walks the row, arrows walk the column, N/R set the case type, 1/2/3
@@ -344,6 +341,16 @@ export default function DaySheet({
       if (hit) {
         e.preventDefault()
         patch(i, { complexity: hit.code })
+        return
+      }
+    }
+    // Y/N on Investigations asked, N/Y/M on Brought reports — the same bargain
+    // the rest of the sheet makes: never reach for the mouse.
+    if (OPTIONS[field]) {
+      const hit = OPTIONS[field].filter((o) => o.key === e.key.toLowerCase())[0]
+      if (hit) {
+        e.preventDefault()
+        patch(i, { [field]: hit.code })
         return
       }
     }
@@ -385,8 +392,6 @@ export default function DaySheet({
     ((value || '').trim() && toMin(value) == null ? 'var(--color-accent-2-700)' : 'var(--color-text)')
   const spanKill = 'background:none;border:none;cursor:pointer;color:var(--color-neutral-500);font:600 15px/1 var(--font-body);padding:2px 3px'
   const addStyle = 'font:600 13px/1 var(--font-body);padding:7px 9px;border-radius:var(--radius-md);cursor:pointer;border:1px dashed var(--color-neutral-400);background:transparent;color:var(--color-neutral-700)'
-  const railStyle = 'position:fixed;left:0;right:0;bottom:0;padding:12px 20px;background:var(--color-neutral-100);border-top:1px solid var(--color-text);box-shadow:var(--shadow-md);transition:transform .16s ease;transform:translateY(' +
-    (showRail ? '0' : '110%') + ')'
 
   /* ── the sheet ────────────────────────────────────────────────────────── */
 
@@ -627,7 +632,7 @@ export default function DaySheet({
               <th>Out</th>
               <th style={st('text-align:right')}>Min</th>
               <th>Investigations asked</th>
-              <th>Done before walk-in</th>
+              <th>Brought reports</th>
               <th>Diagnosis / notes</th>
               <th className="col-delay">If delayed, why</th>
               <th className="col-kill screen-only"></th>
@@ -685,12 +690,34 @@ export default function DaySheet({
                 <td style={st('text-align:right;padding-top:9px;font-variant-numeric:tabular-nums')}>
                   <span style={st(row.minStyle)}>{row.mins}</span>
                 </td>
-                <td>
-                  <textarea data-row={row.i} data-field="asked" value={row.asked} onFocus={onFocus} onChange={edit} rows={1} placeholder="ECHO, TROP" />
-                </td>
-                <td>
-                  <textarea data-row={row.i} data-field="done" value={row.done} onFocus={onFocus} onChange={edit} rows={1} placeholder="brought reports" />
-                </td>
+                {[
+                  { field: 'asked', code: row.askedCode, text: row.askedLabel },
+                  { field: 'done', code: row.broughtCode, text: row.broughtLabel }
+                ].map((cell) => (
+                  <td key={cell.field}>
+                    <div
+                      className="type-cell screen-only"
+                      data-row={row.i}
+                      data-field={cell.field}
+                      tabIndex={0}
+                      style={st('display:flex;gap:4px;padding:2px 0;border-radius:var(--radius-md)')}
+                    >
+                      {OPTIONS[cell.field].map((o) => (
+                        <button
+                          key={o.code}
+                          type="button"
+                          data-row={row.i}
+                          data-field={cell.field}
+                          data-val={o.code}
+                          onClick={setOption}
+                          title={o.label + ' — press ' + o.key.toUpperCase()}
+                          style={st(pill(cell.code === o.code, o.color))}
+                        >{o.label}</button>
+                      ))}
+                    </div>
+                    <span className="print-only">{cell.text}</span>
+                  </td>
+                ))}
                 <td>
                   <textarea data-row={row.i} data-field="dx" value={row.dx} onFocus={onFocus} onChange={edit} rows={1} placeholder="CAD, post-PTCA, HTN" />
                 </td>
@@ -716,7 +743,7 @@ export default function DaySheet({
       <div className="screen-only" style={st('margin-top:var(--space-3);display:flex;align-items:baseline;gap:var(--space-4);flex-wrap:wrap')}>
         <button type="button" className="btn btn-ghost" onClick={appendRow}>+ Add patient</button>
         <div style={st('font:italic 400 14px/1.5 var(--font-body);color:var(--color-neutral-600)')}>
-          Enter moves to the next cell · ↓ next patient · ↑ previous · on the Case cell press N or R · on Complexity press 1, 2 or 3 · Time In stamps itself when you start the name
+          Enter moves to the next cell · ↓ next patient · ↑ previous · on the Case cell press N or R · on Complexity press 1, 2 or 3 · on Investigations asked press Y or N · on Brought reports press N, Y or M · Time In stamps itself when you start the name
         </div>
       </div>
 
@@ -774,26 +801,6 @@ export default function DaySheet({
           {pastDays.length < 2 && (
             <span style={st('font:italic 400 15px/1.4 var(--font-body);color:var(--color-neutral-600)')}>No earlier days saved yet.</span>
           )}
-        </div>
-      </div>
-
-      <div className="screen-only" style={st(railStyle)}>
-        <div style={st('max-width:100%;display:flex;align-items:center;gap:var(--space-3)')}>
-          <div style={st('font:400 12px/1.3 var(--font-body);color:var(--color-neutral-600);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap')}>
-            {showRail ? (chip.field === 'asked' ? 'Asked · row ' + (chip.row + 1) : 'Done before · row ' + (chip.row + 1)) : ''}
-          </div>
-          <div style={st('display:flex;flex-wrap:wrap;gap:5px;flex:1')}>
-            {CHIPS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                className="chip"
-                data-chip={c}
-                onMouseDown={addChip}
-                style={st('font:600 12.5px/1 var(--font-body);letter-spacing:.02em;padding:6px 8px;border:1px solid var(--color-accent-300);background:var(--color-accent-100);color:var(--color-accent-800);border-radius:var(--radius-md);cursor:pointer')}
-              >{c}</button>
-            ))}
-          </div>
         </div>
       </div>
     </>

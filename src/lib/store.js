@@ -31,6 +31,43 @@ export const complexityLabel = (code) => {
   return hit ? hit.label : ''
 }
 
+// Investigations asked used to be a list typed out per patient. In a running
+// clinic it never got filled in, and a column nobody answers is worse than a
+// narrow one, so it is now the only question that actually gets answered.
+export const ASKED = [
+  { code: 'YES', label: 'Yes', key: 'y', color: 'var(--color-accent-700)' },
+  { code: 'NO', label: 'No', key: 'n', color: 'var(--color-neutral-600)' }
+]
+
+// What the patient walked in holding. Many is its own answer rather than a
+// louder yes: a folder of outside reports is a different consultation from one
+// ECG, and it is the case that runs long.
+export const BROUGHT = [
+  { code: 'NO', label: 'No', key: 'n', color: 'var(--color-neutral-600)' },
+  { code: 'YES', label: 'Yes', key: 'y', color: 'var(--color-accent-700)' },
+  { code: 'MANY', label: 'Many', key: 'm', color: 'var(--color-accent-2-600)' }
+]
+
+export const OPTIONS = { asked: ASKED, done: BROUGHT }
+
+// Both columns held free text before, and the days already logged are not
+// rewritten to fit the pills: "ECG, ECHO, TROP" is a record of what a patient
+// was actually sent for and deleting it to store "YES" would be a poor trade.
+// So the stored value is left exactly as it was and simply reads as Yes until
+// someone presses a pill on that row, which is the point at which they have
+// said what they mean.
+export const codeOf = (options, value) => {
+  const v = (value || '').trim()
+  if (!v) return ''
+  const hit = options.filter((o) => o.code === v.toUpperCase())[0]
+  return hit ? hit.code : 'YES'
+}
+
+export const optionLabel = (options, value) => {
+  const hit = options.filter((o) => o.code === codeOf(options, value))[0]
+  return hit ? hit.label : ''
+}
+
 const rid = () => Math.random().toString(36).slice(2)
 
 export function blankRow() {

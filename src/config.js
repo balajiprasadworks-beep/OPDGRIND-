@@ -12,7 +12,6 @@ const DEFAULTS = {
   doctorName: 'Dr Balaji Prasad Ramesh',
   unitLine: 'Department of Cardiology · Outpatient',
   targetMinutes: 12,
-  showChipRail: true,
   supabaseUrl: 'https://zewqcnnhraensnsvxwsc.supabase.co',
   supabaseKey: 'sb_publishable_A3ApdkhDThVR3oiMfQ-JjA_jRAQobhD'
 }
@@ -29,7 +28,6 @@ export const config = {
   doctorName: env.VITE_DOCTOR_NAME || DEFAULTS.doctorName,
   unitLine: env.VITE_UNIT_LINE || DEFAULTS.unitLine,
   targetMinutes: num(env.VITE_TARGET_MINUTES, DEFAULTS.targetMinutes),
-  showChipRail: env.VITE_SHOW_CHIP_RAIL !== 'false',
   supabaseUrl: env.VITE_SUPABASE_URL || DEFAULTS.supabaseUrl,
   supabaseKey: env.VITE_SUPABASE_KEY || DEFAULTS.supabaseKey
 }
