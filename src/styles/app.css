@@ -97,11 +97,31 @@ a:hover { color: var(--color-accent-600); text-decoration: underline; }
   .print-only { display: inline; }
   /* The shell is a full-height screen surface; on paper that min-height is a
      blank page's worth of nothing, and any sub-pixel overflow past it starts a
-     second sheet. */
-  .log-shell { padding: 0 !important; margin-left: 0 !important; min-height: 0 !important; }
+     second sheet. The shell also carries its own inline screen background —
+     a browser with "background graphics" on would otherwise print the page's
+     light grey fill behind everything, dulling the ink on top of it. */
+  .log-shell { padding: 0 !important; margin-left: 0 !important; min-height: 0 !important; background: #fff !important; }
   body { background: #fff; }
-  .log-table { font-size: 10.5pt !important; }
+
+  /* Screen greys are tuned for a backlit display; a photocopy of a printed
+     sheet crushes them to nothing. Every label, header and note on paper
+     reads off this darker ramp instead — .log-shell and .report-shell both
+     hang off these tokens, so one override covers the day sheet and the
+     reports together. */
+  :root {
+    --color-neutral-500: #524e4e;
+    --color-neutral-600: #3f3b3b;
+    --color-neutral-700: #2c2929;
+    --color-neutral-800: #1a1818;
+  }
+
+  /* The daily sheet is filled in by hand and read at a glance between
+     patients, so every field on it — not just the name — prints semibold. */
+  .log-table { font-size: 10.5pt !important; font-weight: 600; }
   .log-table th, .log-table td { border: 1px solid #8d8a8a !important; padding: 3px 5px !important; }
+  /* The header row's colour is a 60%-mixed tint for the screen; on paper
+     that reads as light grey, so it prints at full ink instead. */
+  .log-table th { color: var(--color-text) !important; }
   .log-table input, .log-table textarea { padding: 0 !important; height: auto !important; }
   .log-table tr { break-inside: avoid; }
   .no-delay .col-delay { display: none !important; }
