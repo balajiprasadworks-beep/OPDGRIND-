@@ -20,7 +20,8 @@ export default function Drawer({ open, onClose, user, view, onNavigate, onSignOu
   const items = [
     { id: 'profile', label: 'My profile', note: 'name · email · password' },
     { id: 'week', label: 'Weekly report', note: 'Monday to Saturday' },
-    { id: 'month', label: 'Monthly report', note: 'week by week' }
+    { id: 'month', label: 'Monthly report', note: 'week by week' },
+    { id: 'capture', label: 'New patient (v2 beta)', note: 'the new append-only log' }
   ]
 
   return (

@@ -5,6 +5,7 @@ import { istDate, istTime } from './lib/time.js'
 import { blankDay, normalizeStore, readStore, writeStore } from './lib/store.js'
 import { readSession, restore, signOut } from './lib/auth.js'
 import { fetchDays, isConfigured, mergeRemote, pushDays } from './lib/supabase.js'
+import Capture from './components/Capture.jsx'
 import DaySheet from './components/DaySheet.jsx'
 import Drawer from './components/Drawer.jsx'
 import Login from './components/Login.jsx'
@@ -238,6 +239,7 @@ export default function App() {
         {view === 'profile' && (
           <ProfilePanel user={user} onUpdated={setUser} onBack={() => navigate('sheet')} />
         )}
+        {view === 'capture' && <Capture user={user} onBack={() => navigate('sheet')} />}
       </div>
     </>
   )
