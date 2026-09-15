@@ -133,6 +133,39 @@ their patient list, so it should be a real one.
   sync buttons says what happened, and **Export backup** writes the whole store
   to JSON that **Import backup** reads back.
 
+## OPDGrind v2 — the integrity layer
+
+`opd_days` above is a good personal log, but it cannot support assessment:
+the person being measured can silently rewrite the measurement, and the
+clock belongs to their browser. OPDGrind v2 replaces it with an append-only
+event log that nobody — not even a supervisor — can update or delete, with
+the server owning the clock and a SHA-256 hash chain making any retroactive
+edit detectable. The full design is the build spec this was implemented
+from; the short version of what's true today:
+
+- [`supabase/phase1_integrity.sql`](supabase/phase1_integrity.sql) is
+  **Phase 1 only**: `profiles` (role-based: clinician / coordinator /
+  supervisor, auto-provisioned on signup), `sessions`, `encounters`, and
+  `encounter_events` with a hash-chain trigger and a `verify_session_chain()`
+  function that walks a session and reports where a chain breaks. Run it once
+  in the Supabase SQL editor, after `schema.sql` — it's additive and safe to
+  run again.
+- **Nothing above is wired into the app yet.** `opd_days` keeps working
+  exactly as documented above; capture UI on the new model, corrections,
+  day-seal cron, register-based queue reconstruction, and the supervisor
+  dashboard are later phases in the spec and aren't built. Phase 1 is only
+  the foundation those depend on.
+- The eventual cutover — renaming `opd_days` to `legacy_opd_days`, read-only,
+  labelled "pre-v2, unverified" — happens once a Phase 2 capture UI actually
+  replaces it as the write path, not before. That statement is documented at
+  the bottom of `phase1_integrity.sql` rather than run automatically, so
+  applying this migration today cannot break anyone's clinic.
+- [`docs/CHARTER.md`](docs/CHARTER.md) is the governance charter the build
+  spec calls for — purpose, what's measured, who sees it, binding exclusions,
+  correction and dispute routes, retention, and a six-month sunset review.
+  It's a draft for the HOD to amend and sign; nothing here should go live
+  before staff have seen it.
+
 ## Using the sheet
 
 Time In stamps itself the moment you start typing a name, **Out now** stamps the
@@ -275,6 +308,8 @@ src/lib/time.js                 IST clock, duration maths, week and month calend
 src/lib/css.js                  CSS-text → React style objects
 src/styles/                     Broadsheet design system, page rules, vendored fonts
 supabase/schema.sql             the one-time table and policies
+supabase/phase1_integrity.sql   v2 Phase 1 — append-only event log, hash chain, RLS lockdown
+docs/CHARTER.md                 v2 governance charter (draft, for the HOD to sign)
 ```
 
 Both typefaces are vendored under `src/fonts/`, so the app looks the same on a
