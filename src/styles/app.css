@@ -118,6 +118,12 @@ a:hover { color: var(--color-accent-600); text-decoration: underline; }
   /* The daily sheet is filled in by hand and read at a glance between
      patients, so every field on it — not just the name — prints semibold. */
   .log-table { font-size: 10.5pt !important; font-weight: 600; }
+  /* min-width:1540px (set inline, for the screen) was sized for all fifteen
+     columns; print shows eight. Left unset here, the same 1540px still
+     applied on paper and overflowed A4 landscape's ~1039px printable width
+     (297mm minus the 11mm margins on each side) — every printed column
+     wider than that ran off the page regardless of orientation. */
+  .log-table { min-width: 0 !important; width: 100% !important; }
   .log-table th, .log-table td { border: 1px solid #8d8a8a !important; padding: 3px 5px !important; }
   /* The header row's colour is a 60%-mixed tint for the screen; on paper
      that reads as light grey, so it prints at full ink instead. */
