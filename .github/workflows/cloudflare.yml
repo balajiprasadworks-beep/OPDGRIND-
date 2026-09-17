@@ -58,6 +58,7 @@ jobs:
           VITE_DOCTOR_NAME: ${{ vars.VITE_DOCTOR_NAME }}
           VITE_UNIT_LINE: ${{ vars.VITE_UNIT_LINE }}
           VITE_TARGET_MINUTES: ${{ vars.VITE_TARGET_MINUTES }}
+          VITE_WAIT_TARGET_MINUTES: ${{ vars.VITE_WAIT_TARGET_MINUTES }}
           VITE_SHOW_CHIP_RAIL: ${{ vars.VITE_SHOW_CHIP_RAIL }}
         run: npm run build
 
