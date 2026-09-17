@@ -117,6 +117,7 @@ export default function DaySheet({
 
   const disp = rows.map((r, i) => {
     const d = dur(r)
+    const w = span(r.walkIn, r.inT)
     return {
       ...r,
       i,
@@ -125,6 +126,7 @@ export default function DaySheet({
       minStyle: d != null && d > target
         ? 'font-weight:600;color:var(--color-accent-2-700)'
         : 'color:var(--color-neutral-800)',
+      waitMins: w == null ? '' : String(w),
       newStyle: pill(r.type === 'New', 'var(--color-accent-700)'),
       revStyle: pill(r.type === 'Review', 'var(--color-accent-700)'),
       complexityLabel: complexityLabel(r.complexity),
@@ -650,6 +652,7 @@ export default function DaySheet({
               <th>Brought reports</th>
               <th>Diagnosis / notes</th>
               <th>OPD walk-in</th>
+              <th style={st('text-align:right')}>Wait</th>
               <th className="col-delay">If delayed, why</th>
               <th className="col-kill screen-only"></th>
             </tr>
@@ -745,8 +748,11 @@ export default function DaySheet({
                     onChange={edit}
                     onBlur={tidyWalkIn}
                     placeholder="--:--"
-                    style={st('font-variant-numeric:tabular-nums')}
+                    style={st('width:64px;text-align:center;font:600 15px/1 var(--font-body);font-variant-numeric:tabular-nums')}
                   />
+                </td>
+                <td style={st('text-align:right;padding-top:9px;font-variant-numeric:tabular-nums;color:var(--color-neutral-800)')}>
+                  {row.waitMins}
                 </td>
                 <td className="col-delay">
                   <textarea data-row={row.i} data-field="delay" value={row.delay} onFocus={onFocus} onChange={edit} rows={1} placeholder="—" />
