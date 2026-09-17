@@ -114,6 +114,7 @@ export default function DaySheet({
   /* ── derived numbers ──────────────────────────────────────────────────── */
 
   const target = config.targetMinutes != null ? config.targetMinutes : 12
+  const waitTarget = config.waitTargetMinutes != null ? config.waitTargetMinutes : 30
 
   const disp = rows.map((r, i) => {
     const d = dur(r)
@@ -127,6 +128,9 @@ export default function DaySheet({
         ? 'font-weight:600;color:var(--color-accent-2-700)'
         : 'color:var(--color-neutral-800)',
       waitMins: w == null ? '' : String(w),
+      waitStyle: w != null && w > waitTarget
+        ? 'font-weight:600;color:var(--color-accent-2-700)'
+        : 'color:var(--color-neutral-800)',
       newStyle: pill(r.type === 'New', 'var(--color-accent-700)'),
       revStyle: pill(r.type === 'Review', 'var(--color-accent-700)'),
       askedCode: codeOf(OPTIONS.asked, r.asked),
@@ -745,8 +749,8 @@ export default function DaySheet({
                     style={st('width:64px;text-align:center;font:600 15px/1 var(--font-body);font-variant-numeric:tabular-nums')}
                   />
                 </td>
-                <td style={st('text-align:right;padding-top:9px;font-variant-numeric:tabular-nums;color:var(--color-neutral-800)')}>
-                  {row.waitMins}
+                <td style={st('text-align:right;padding-top:9px;font-variant-numeric:tabular-nums')}>
+                  <span style={st(row.waitStyle)}>{row.waitMins}</span>
                 </td>
                 <td className="screen-only">
                   <textarea data-row={row.i} data-field="delay" value={row.delay} onFocus={onFocus} onChange={edit} rows={1} placeholder="—" />

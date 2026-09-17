@@ -92,6 +92,7 @@ optional and falls back to the defaults the artifact shipped with.
 | `VITE_DOCTOR_NAME` | Fallback name in the header and under the signature rule, used until a clinician signs in |
 | `VITE_UNIT_LINE` | Department line beside the name |
 | `VITE_TARGET_MINUTES` | Minutes per patient above which the Min column turns red (default 12) |
+| `VITE_WAIT_TARGET_MINUTES` | Minutes of wait above which the Wait column turns red (default 30) |
 
 Vite inlines these at build time, so change `.env` and rebuild. To repoint one
 browser at a different project without rebuilding, set an override from the
