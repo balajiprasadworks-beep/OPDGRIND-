@@ -124,5 +124,4 @@ a:hover { color: var(--color-accent-600); text-decoration: underline; }
   .log-table th { color: var(--color-text) !important; }
   .log-table input, .log-table textarea { padding: 0 !important; height: auto !important; }
   .log-table tr { break-inside: avoid; }
-  .no-delay .col-delay { display: none !important; }
 }

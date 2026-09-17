@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { config } from '../config.js'
 import { st } from '../lib/css.js'
 import { dur, hm, istDate, istTime, span, toMin } from '../lib/time.js'
-import { COMPLEXITY, FIELDS, OPTIONS, blankRow, complexityLabel, codeOf, optionLabel } from '../lib/store.js'
+import { COMPLEXITY, FIELDS, OPTIONS, blankRow, codeOf } from '../lib/store.js'
 import { SETUP_SQL } from '../lib/supabase.js'
 import Greeting, { GREETING_MS } from './Greeting.jsx'
 
@@ -129,11 +129,8 @@ export default function DaySheet({
       waitMins: w == null ? '' : String(w),
       newStyle: pill(r.type === 'New', 'var(--color-accent-700)'),
       revStyle: pill(r.type === 'Review', 'var(--color-accent-700)'),
-      complexityLabel: complexityLabel(r.complexity),
       askedCode: codeOf(OPTIONS.asked, r.asked),
-      askedLabel: optionLabel(OPTIONS.asked, r.asked),
       broughtCode: codeOf(OPTIONS.done, r.done),
-      broughtLabel: optionLabel(OPTIONS.done, r.done),
       hasOut: !!r.outT,
       needsOut: !r.outT
     }
@@ -208,7 +205,6 @@ export default function DaySheet({
   }
 
   const dObj = dateKey ? new Date(dateKey + 'T00:00:00') : new Date()
-  const delayClass = rows.some((r) => (r.delay || '').trim()) ? '' : 'no-delay'
 
   /* ── handlers ─────────────────────────────────────────────────────────── */
 
@@ -637,30 +633,30 @@ export default function DaySheet({
       <div style={st('height:1px;background:var(--color-text);margin-top:3px')}></div>
 
       <div style={st('overflow-x:auto;margin-top:var(--space-4)')} onKeyDown={onKey}>
-        <table className={('table log-table ' + delayClass).trim()} style={st('min-width:1540px;font-size:15px')}>
+        <table className="table log-table" style={st('min-width:1540px;font-size:15px')}>
           <thead>
             <tr>
-              <th style={st('text-align:right')}>#</th>
+              <th className="screen-only" style={st('text-align:right')}>#</th>
               <th>Patient name</th>
               <th>OPD no.</th>
               <th>Case</th>
-              <th>Complexity</th>
+              <th className="screen-only">Complexity</th>
               <th>In</th>
               <th>Out</th>
               <th style={st('text-align:right')}>Min</th>
-              <th>Investigations asked</th>
-              <th>Brought reports</th>
-              <th>Diagnosis / notes</th>
+              <th className="screen-only">Investigations asked</th>
+              <th className="screen-only">Brought reports</th>
+              <th className="screen-only">Diagnosis / notes</th>
               <th>OPD walk-in</th>
               <th style={st('text-align:right')}>Wait</th>
-              <th className="col-delay">If delayed, why</th>
+              <th className="screen-only">If delayed, why</th>
               <th className="col-kill screen-only"></th>
             </tr>
           </thead>
           <tbody>
             {disp.map((row) => (
               <tr key={row.id}>
-                <td style={st('text-align:right;color:var(--color-neutral-600);padding-top:9px')}>{row.no}</td>
+                <td className="screen-only" style={st('text-align:right;color:var(--color-neutral-600);padding-top:9px')}>{row.no}</td>
                 <td>
                   <input data-row={row.i} data-field="name" value={row.name} onFocus={onFocus} onChange={edit} placeholder="Name" style={st('font-weight:600')} />
                 </td>
@@ -673,8 +669,8 @@ export default function DaySheet({
                     <button type="button" data-row={row.i} data-val="Review" onClick={setType} style={st(row.revStyle)}>Rev</button>
                   </div>
                 </td>
-                <td>
-                  <div className="type-cell screen-only" data-row={row.i} data-field="complexity" tabIndex={0} style={st('display:flex;gap:4px;padding:2px 0;border-radius:var(--radius-md)')}>
+                <td className="screen-only">
+                  <div className="type-cell" data-row={row.i} data-field="complexity" tabIndex={0} style={st('display:flex;gap:4px;padding:2px 0;border-radius:var(--radius-md)')}>
                     {COMPLEXITY.map((c) => (
                       <button
                         key={c.code}
@@ -687,7 +683,6 @@ export default function DaySheet({
                       >{c.label}</button>
                     ))}
                   </div>
-                  <span className="print-only">{row.complexityLabel}</span>
                 </td>
                 <td>
                   <input data-row={row.i} data-field="inT" value={row.inT} onFocus={onFocus} onChange={edit} placeholder="--:--" style={st('font-variant-numeric:tabular-nums')} />
@@ -710,12 +705,12 @@ export default function DaySheet({
                   <span style={st(row.minStyle)}>{row.mins}</span>
                 </td>
                 {[
-                  { field: 'asked', code: row.askedCode, text: row.askedLabel },
-                  { field: 'done', code: row.broughtCode, text: row.broughtLabel }
+                  { field: 'asked', code: row.askedCode },
+                  { field: 'done', code: row.broughtCode }
                 ].map((cell) => (
-                  <td key={cell.field}>
+                  <td key={cell.field} className="screen-only">
                     <div
-                      className="type-cell screen-only"
+                      className="type-cell"
                       data-row={row.i}
                       data-field={cell.field}
                       tabIndex={0}
@@ -734,10 +729,9 @@ export default function DaySheet({
                         >{o.label}</button>
                       ))}
                     </div>
-                    <span className="print-only">{cell.text}</span>
                   </td>
                 ))}
-                <td>
+                <td className="screen-only">
                   <textarea data-row={row.i} data-field="dx" value={row.dx} onFocus={onFocus} onChange={edit} rows={1} placeholder="CAD, post-PTCA, HTN" />
                 </td>
                 <td>
@@ -754,7 +748,7 @@ export default function DaySheet({
                 <td style={st('text-align:right;padding-top:9px;font-variant-numeric:tabular-nums;color:var(--color-neutral-800)')}>
                   {row.waitMins}
                 </td>
-                <td className="col-delay">
+                <td className="screen-only">
                   <textarea data-row={row.i} data-field="delay" value={row.delay} onFocus={onFocus} onChange={edit} rows={1} placeholder="—" />
                 </td>
                 <td className="col-kill screen-only" style={st('padding-top:7px')}>
