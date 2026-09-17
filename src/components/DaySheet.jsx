@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 
 import { config } from '../config.js'
 import { st } from '../lib/css.js'
-import { dur, hm, istDate, istTime, toMin } from '../lib/time.js'
+import { dur, hm, istDate, istTime, span, toMin } from '../lib/time.js'
 import { COMPLEXITY, FIELDS, OPTIONS, blankRow, complexityLabel, codeOf, optionLabel } from '../lib/store.js'
 import { SETUP_SQL } from '../lib/supabase.js'
 import Greeting, { GREETING_MS } from './Greeting.jsx'
@@ -149,6 +149,12 @@ export default function DaySheet({
   const statPatients = String(logged)
   const statMean = durs.length ? (durs.reduce((a, b) => a + b, 0) / durs.length).toFixed(1) : '—'
 
+  // Time from OPD walk-in (typed by hand — nobody but the patient knows it, so
+  // it can never auto-stamp the way Time In does) to Time In: how long someone
+  // actually waited to see a doctor, as opposed to how long their consult ran.
+  const waits = rows.map((r) => span(r.walkIn, r.inT)).filter((n) => n != null)
+  const statWait = waits.length ? (waits.reduce((a, b) => a + b, 0) / waits.length).toFixed(1) : '—'
+
   const pastDays = Object.keys(store).sort().reverse().map((k) => {
     const rr = (store[k] && store[k].rows) || []
     const dd = rr.map(dur).filter((n) => n != null)
@@ -205,6 +211,15 @@ export default function DaySheet({
   /* ── handlers ─────────────────────────────────────────────────────────── */
 
   const edit = (e) => patch(+e.target.dataset.row, { [e.target.dataset.field]: e.target.value })
+
+  // OPD walk-in is typed by hand, never stamped, so it gets the same
+  // "930" / "9.30" / "0930" tidy-on-leave the break clocks get — a doctor
+  // does not know when a patient walked in, only the patient (or reception)
+  // does, so there is nothing to stamp automatically here.
+  const tidyWalkIn = (e) => {
+    const tidy = tidyTime(e.target.value)
+    if (tidy !== e.target.value) patch(+e.target.dataset.row, { walkIn: tidy })
+  }
 
   const onFocus = (e) => {
     const i = +e.target.dataset.row
@@ -634,6 +649,7 @@ export default function DaySheet({
               <th>Investigations asked</th>
               <th>Brought reports</th>
               <th>Diagnosis / notes</th>
+              <th>OPD walk-in</th>
               <th className="col-delay">If delayed, why</th>
               <th className="col-kill screen-only"></th>
             </tr>
@@ -721,6 +737,17 @@ export default function DaySheet({
                 <td>
                   <textarea data-row={row.i} data-field="dx" value={row.dx} onFocus={onFocus} onChange={edit} rows={1} placeholder="CAD, post-PTCA, HTN" />
                 </td>
+                <td>
+                  <input
+                    data-row={row.i}
+                    data-field="walkIn"
+                    value={row.walkIn}
+                    onChange={edit}
+                    onBlur={tidyWalkIn}
+                    placeholder="--:--"
+                    style={st('font-variant-numeric:tabular-nums')}
+                  />
+                </td>
                 <td className="col-delay">
                   <textarea data-row={row.i} data-field="delay" value={row.delay} onFocus={onFocus} onChange={edit} rows={1} placeholder="—" />
                 </td>
@@ -743,7 +770,7 @@ export default function DaySheet({
       <div className="screen-only" style={st('margin-top:var(--space-3);display:flex;align-items:baseline;gap:var(--space-4);flex-wrap:wrap')}>
         <button type="button" className="btn btn-ghost" onClick={appendRow}>+ Add patient</button>
         <div style={st('font:italic 400 14px/1.5 var(--font-body);color:var(--color-neutral-600)')}>
-          Enter moves to the next cell · ↓ next patient · ↑ previous · on the Case cell press N or R · on Complexity press 1, 2 or 3 · on Investigations asked press Y or N · on Brought reports press N, Y or M · Time In stamps itself when you start the name
+          Enter moves to the next cell · ↓ next patient · ↑ previous · on the Case cell press N or R · on Complexity press 1, 2 or 3 · on Investigations asked press Y or N · on Brought reports press N, Y or M · Time In stamps itself when you start the name · OPD walk-in is typed by hand and never stamps itself
         </div>
       </div>
 
@@ -768,6 +795,10 @@ export default function DaySheet({
           <div><span style={st('color:var(--color-neutral-600)')}>Net time in OPD </span><strong>{netTime}</strong></div>
           <div><span style={st('color:var(--color-neutral-600)')}>Patients </span><strong>{statPatients}</strong></div>
           <div><span style={st('color:var(--color-neutral-600)')}>Mean per patient </span><strong>{statMean} min</strong></div>
+          <div>
+            <span style={st('color:var(--color-neutral-600)')}>Average wait to see doctor </span>
+            <strong>{statWait === '—' ? statWait : statWait + ' min'}</strong>
+          </div>
         </div>
         <div style={st('margin-top:var(--space-2);font:400 15px/1.5 var(--font-body);color:var(--color-neutral-700)')}>
           <span style={st('color:var(--color-neutral-600)')}>Breaks logged: </span>

@@ -16,7 +16,7 @@ export const ADOPTED_FLAG = 'opd-flow-log-adopted'
 export const storageKey = (clinicianId) => (clinicianId ? BASE_KEY + '::' + clinicianId : BASE_KEY)
 
 // The tab order across a row — Enter walks these in sequence.
-export const FIELDS = ['name', 'opd', 'type', 'complexity', 'asked', 'done', 'dx', 'delay']
+export const FIELDS = ['name', 'opd', 'type', 'complexity', 'asked', 'done', 'dx', 'walkIn', 'delay']
 
 // Case complexity, quiet to loud. The value stored is the code; the sheet and
 // the reports both read their label and colour from here.
@@ -73,7 +73,7 @@ const rid = () => Math.random().toString(36).slice(2)
 export function blankRow() {
   return {
     id: rid(), name: '', opd: '', type: '', complexity: '',
-    inT: '', outT: '', asked: '', done: '', dx: '', delay: ''
+    inT: '', outT: '', asked: '', done: '', dx: '', walkIn: '', delay: ''
   }
 }
 
