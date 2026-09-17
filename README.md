@@ -247,10 +247,11 @@ Clicking **now** under *JR walk in* raises a small **Hello!**, and under *JR wal
 out* a **Caio!** — about a second and a half, in its own lane so it never covers
 the sheet, and never able to swallow a click.
 
-**Print paper sheet** lays the day out A4 landscape and hides all the
-screen-only controls (and the "if delayed, why" column when no row uses it);
-complexity, investigations asked and brought reports all print as plain text
-rather than as pills. The reports print A4 portrait, one page each.
+**Print paper sheet** lays the day out A4 landscape as a short columns —
+name, OPD no., Case, In, Out, Min, OPD walk-in, Wait — and drops row
+numbers, Complexity, Investigations asked, Brought reports, Diagnosis /
+notes and If delayed why from the printed page; all of those stay exactly
+as they are on screen. The reports print A4 portrait, one page each.
 
 ## Clinician profiles
 
