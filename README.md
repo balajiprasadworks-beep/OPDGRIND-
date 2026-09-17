@@ -150,21 +150,54 @@ from; the short version of what's true today:
   function that walks a session and reports where a chain breaks. Run it once
   in the Supabase SQL editor, after `schema.sql` — it's additive and safe to
   run again.
-- **Nothing above is wired into the app yet.** `opd_days` keeps working
-  exactly as documented above; capture UI on the new model, corrections,
-  day-seal cron, register-based queue reconstruction, and the supervisor
-  dashboard are later phases in the spec and aren't built. Phase 1 is only
-  the foundation those depend on.
-- The eventual cutover — renaming `opd_days` to `legacy_opd_days`, read-only,
-  labelled "pre-v2, unverified" — happens once a Phase 2 capture UI actually
-  replaces it as the write path, not before. That statement is documented at
-  the bottom of `phase1_integrity.sql` rather than run automatically, so
-  applying this migration today cannot break anyone's clinic.
 - [`docs/CHARTER.md`](docs/CHARTER.md) is the governance charter the build
   spec calls for — purpose, what's measured, who sees it, binding exclusions,
   correction and dispute routes, retention, and a six-month sunset review.
   It's a draft for the HOD to amend and sign; nothing here should go live
   before staff have seen it.
+- The eventual cutover — renaming `opd_days` to `legacy_opd_days`, read-only,
+  labelled "pre-v2, unverified" — happens once the capture UI below is
+  actually the write path everyone uses, not before. That statement is
+  documented at the bottom of `phase1_integrity.sql` rather than run
+  automatically, so applying either migration today cannot break anyone's
+  clinic.
+
+### Phase 2 — capture UI (in progress, opt-in)
+
+**New patient (v2 beta)**, in the drawer, is a first, additive capture
+screen on top of `encounter_events` — the tablet-fallback shape from the
+build spec (§5.1: two big buttons, case type defaults to Review, one tap to
+change) rather than the QR/barcode path, which needs a scanner or a phone
+camera to try against and isn't built yet. It does not touch `opd_days` —
+**Today's sheet stays the primary log** until this has been used for real
+and the cutover above happens on purpose, not by accident.
+
+What it does: starts and ends encounters as live `encounter_events` rows,
+auto-closes a still-open encounter if a new one starts (flagged
+`auto_closed`, per §5.2), and queues an ended-encounter event in IndexedDB
+when offline, syncing it as `live_offline` on reconnect. **Starting a new
+encounter needs a connection** — turning an OP number into `opd_no_hash`
+happens server-side (next paragraph) and there is nothing safe to hash with
+on the browser side of that request, so that one action can't queue offline
+the way ending an encounter can.
+
+**One more one-time setup step**, beyond the SQL above: hashing an OP
+number needs a server-side pepper that (like the Supabase service-role key)
+must never reach the browser, so it lives in a Supabase Edge Function
+rather than in this repo's `VITE_*` config:
+
+```bash
+supabase functions deploy hash-opd-number
+supabase secrets set OPD_NUMBER_PEPPER=<a long random string — keep it secret>
+```
+
+Without this, the capture screen still works — it shows a plain connection
+error rather than a crash — but no encounter can be started. See
+[`supabase/functions/hash-opd-number`](supabase/functions/hash-opd-number).
+
+Still not built: corrections/attestation workflow, the day-seal cron,
+register-based queue reconstruction, and the supervisor dashboard — all
+later phases in the spec that Phase 1 was the foundation for.
 
 ## Using the sheet
 
@@ -300,15 +333,19 @@ src/components/ReportShell.jsx  the frame both reports share
 src/components/WeekReport.jsx   Monday-to-Saturday report
 src/components/MonthReport.jsx  calendar-month report, week by week
 src/components/Greeting.jsx     the Hello! / Caio! pop-up
+src/components/Capture.jsx      v2 Phase 2 — one-scan capture on encounter_events (opt-in, beta)
 src/lib/auth.js                 Supabase Auth over plain fetch
 src/lib/store.js                localStorage day store and its normalising
 src/lib/supabase.js             PostgREST calls and the last-write-wins merge
+src/lib/events.js               v2 encounter_events: sessions, start/end, auto-close, hashing
+src/lib/offlineQueue.js         v2 IndexedDB queue for events captured offline
 src/lib/stats.js                day, week and month figures — one source for both reports
 src/lib/time.js                 IST clock, duration maths, week and month calendars
 src/lib/css.js                  CSS-text → React style objects
 src/styles/                     Broadsheet design system, page rules, vendored fonts
 supabase/schema.sql             the one-time table and policies
 supabase/phase1_integrity.sql   v2 Phase 1 — append-only event log, hash chain, RLS lockdown
+supabase/functions/hash-opd-number  v2 Phase 2 — server-side OP-number hashing (the pepper)
 docs/CHARTER.md                 v2 governance charter (draft, for the HOD to sign)
 ```
 
